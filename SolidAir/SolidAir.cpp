@@ -24,15 +24,17 @@ pfcdtDrawEx cdtDrawEx;
 pfcdtAnimate cdtAnimate;
 pfcdtTerm cdtTerm;
 
+int cdWidth;
+int cdHight;
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+                  _In_opt_ HINSTANCE hPrevInstance,
+                      _In_ LPWSTR    lpCmdLine,
+                      _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: Place code here.
     const HMODULE cards = LoadLibraryW(L"cards.dll");
 
     if (cards == 0)
@@ -41,7 +43,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         
         return FALSE;
     }
-
 
     cdtInit = (pfcdtInit)GetProcAddress(cards, "cdtInit");
     cdtDraw = (pfcdtDraw)GetProcAddress(cards, "cdtDraw");
@@ -84,8 +85,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    int width, height;
-    cdtInit(&width, &height);
+    cdtInit(&cdWidth, &cdHight);
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -124,8 +124,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
-
-
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -220,11 +218,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HBRUSH shrubbery = CreateSolidBrush(RGB(0, 0x80, 0));
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
-            cdtDraw(hdc, 70, 70, 0, 1, 0);
-            cdtDraw(hdc, 170, 70, 1, 1, 0);
-            cdtDraw(hdc, 270, 70, 2, 1, 0);
-            cdtDraw(hdc, 370, 70, 3, 1, 0);
-            cdtDraw(hdc, 470, 70, 4, 1, 0);
+            const auto dist = 100 - cdWidth;
+            cdtDraw(hdc, dist, dist, 0, 1, 0);
+            cdtDraw(hdc, dist + 0 * (dist + cdWidth), dist + cdHight + dist, 0, 1, 0);
+            cdtDraw(hdc, dist + 1 * (dist + cdWidth), dist + cdHight + dist, 1, 1, 0);
+            cdtDraw(hdc, dist + 2 * (dist + cdWidth), dist + cdHight + dist, 2, 1, 0);
+            cdtDraw(hdc, dist + 3 * (dist + cdWidth), dist + cdHight + dist, 3, 1, 0);
+            cdtDraw(hdc, dist + 4 * (dist + cdWidth), dist + cdHight + dist, 4, 1, 0);
+            cdtDraw(hdc, dist + 5 * (dist + cdWidth), dist + cdHight + dist, 0, 1, 0);
+            cdtDraw(hdc, dist + 6 * (dist + cdWidth), dist + cdHight + dist, 1, 1, 0);
 
             EndPaint(hWnd, &ps);
         }

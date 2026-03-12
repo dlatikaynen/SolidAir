@@ -126,5 +126,8 @@
     <Image Include="res\laub-bublikum.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\joker.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

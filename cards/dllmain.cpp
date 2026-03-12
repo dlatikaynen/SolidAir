@@ -104,6 +104,7 @@ extern "C" BOOL WINAPI cdtInit(int* width, int* height)
             case 49: resNr = pik_bublikum; break;
             case 50: resNr = pik_damlikum; break;
             //PikKinigl = 51,
+            case 52: resNr = joker; break;
 
             // backsides
             case 54: resNr = back_bloodot; break;

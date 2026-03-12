@@ -125,10 +125,12 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="schema.h" />
     <ClInclude Include="SolidAir.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="schema.cpp" />
     <ClCompile Include="SolidAir.cpp" />
   </ItemGroup>
   <ItemGroup>

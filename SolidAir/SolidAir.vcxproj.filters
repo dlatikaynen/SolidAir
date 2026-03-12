@@ -27,9 +27,15 @@
     <ClInclude Include="SolidAir.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="schema.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SolidAir.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="schema.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

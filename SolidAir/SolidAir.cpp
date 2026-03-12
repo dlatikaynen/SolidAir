@@ -98,7 +98,7 @@ int APIENTRY wWinMain(
 
     // initialize the game state
     dist = 100 - cdWidth;
-    gameState.background = Cards::BackColorful;
+    gameState.background = Cards::BackRed;
     gameState.stockpile.numCardsOnPile = 0;
     gameState.stockpile.uncovered = -1;
 

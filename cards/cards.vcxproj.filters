@@ -105,5 +105,26 @@
     <Image Include="res\back-safety.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\herz-damlikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-damlikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-10.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-2.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-5.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-damlikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-bublikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

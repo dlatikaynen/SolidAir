@@ -171,6 +171,13 @@
     <Image Include="res\back-space.png" />
     <Image Include="res\clubs-asslikum.png" />
     <Image Include="res\clubs-kinigl.png" />
+    <Image Include="res\herz-2.png" />
+    <Image Include="res\herz-5.png" />
+    <Image Include="res\herz-damlikum.png" />
+    <Image Include="res\karo-10.png" />
+    <Image Include="res\karo-damlikum.png" />
+    <Image Include="res\laub-bublikum.png" />
+    <Image Include="res\laub-damlikum.png" />
     <Image Include="res\pik-8.png" />
     <Image Include="res\pik-9.png" />
     <Image Include="res\pik-bublikum.png" />

@@ -50,12 +50,60 @@ extern "C" BOOL WINAPI cdtInit(int* width, int* height)
 
         switch (i)
         {
-            case 0: resNr = pik_8; break;
-            case 1: resNr = pik_9; break;
-            case 2: resNr = pik_bublikum; break;
-            case 3: resNr = pik_damlikum; break;
-            case 4: resNr = laub_kinigl; break;
-            case 5: resNr = laub_asslikum; break;
+            case 0: resNr = laub_asslikum; break;
+            //Laub2 = 1,
+            //Laub3 = 2,
+            //Laub4 = 3,
+            //Laub5 = 4,
+            //Laub6 = 5,
+            //Laub7 = 6,
+            //Laub8 = 7,
+            //Laub9 = 8,
+            //Laub10 = 9,
+            case 10: resNr = laub_bublikum; break;
+            case 11: resNr = laub_damlikum; break;
+            case 12: resNr = laub_kinigl; break;
+            //KaroAsslikum = 13,
+            //Karo2 = 14,
+            //Karo3 = 15,
+            //Karo4 = 16,
+            //Karo5 = 17,
+            //Karo6 = 18,
+            //Karo7 = 19,
+            //Karo8 = 20,
+            //Karo9 = 21,
+            case 22: resNr = karo_10; break;
+            //KaroBublikum = 23,
+            case 24: resNr = karo_damlikum; break;
+            //KaroKinigl = 25,
+
+            //HerzAsslikum = 26,
+            case 27: resNr = herz_2; break;
+            //Herz3 = 28,
+            //Herz4 = 29,
+            case 30: resNr = herz_5; break;
+            //Herz6 = 31,
+            //Herz7 = 32,
+            //Herz8 = 33,
+            //Herz9 = 34,
+            //Herz10 = 35,
+            //HerzBublikum = 36,
+            case 37: resNr = herz_damlikum; break;
+            //HerzKinigl = 38,
+
+            //PikAsslikum = 39,
+            //Pik2 = 40,
+            //Pik3 = 41,
+            //Pik4 = 42,
+            //Pik5 = 43,
+            //Pik6 = 44,
+            //Pik7 = 45,
+            case 46: resNr = pik_8; break;
+            case 47: resNr = pik_9; break;
+            //Pik10 = 48,
+            case 49: resNr = pik_bublikum; break;
+            case 50: resNr = pik_damlikum; break;
+            //PikKinigl = 51,
 
             // backsides
             case 54: resNr = back_bloodot; break;

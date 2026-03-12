@@ -23,14 +23,22 @@
 #define back_ice                        119
 #define back_maple                      120
 #define back_pine                       121
-#define IDB_PNG5                        122
 #define back_safety                     122
+#define herz_damlikum                   123
+#define karo_damlikum                   124
+#define IDB_PNG4                        125
+#define karo_10                         125
+#define herz_2                          126
+#define herz_5                          127
+#define laub_damlikum                   128
+#define laub_damlikum                   128
+#define laub_bublikum                   129
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        123
+#define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1001
 #define _APS_NEXT_SYMED_VALUE           101

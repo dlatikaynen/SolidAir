@@ -24,10 +24,11 @@ pfcdtTerm cdtTerm;
 
 int cdWidth;
 int cdHight;
+int dist = 0;
 GameState gameState = { 0 };
 
 int APIENTRY wWinMain(
-    _In_ HINSTANCE hInstance,
+        _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR lpCmdLine,
     _In_ int nCmdShow
@@ -92,7 +93,28 @@ int APIENTRY wWinMain(
     LoadStringW(hInstance, IDC_SOLIDAIR, szWindowClass, MAX_LOADSTRING);
     RegisterWindowClass(hInstance);
 
-    // Perform application initialization:
+    // initialize the game state
+    dist = 100 - cdWidth;
+
+    for (int pi = 0; pi < 7; ++pi)
+    {
+        if (pi < 4)
+        {
+            gameState.targetPiles[pi].numCardsOnPile = 0;
+            gameState.targetPiles[pi].pos.left = dist + (pi + 3) * (dist + cdWidth);
+            gameState.targetPiles[pi].pos.top = dist;
+            gameState.targetPiles[pi].pos.right = dist + (pi + 3) * (dist + cdWidth) + cdWidth;
+            gameState.targetPiles[pi].pos.bottom = dist + cdHight;
+        }
+
+        gameState.dagoPiles[pi].numCardsOnPile = 0;
+        gameState.dagoPiles[pi].pos.left = dist + pi * (dist + cdWidth);
+        gameState.dagoPiles[pi].pos.top = dist + cdHight + dist;
+        gameState.dagoPiles[pi].pos.right = dist + pi * (dist + cdWidth) + cdWidth;
+        gameState.dagoPiles[pi].pos.bottom = dist + cdHight + dist + cdHight;
+    }
+
+    // Perform application window initialization
     if (!InitInstance (hInstance, nCmdShow))
     {
         std::cerr << "Failed to initialize instance";
@@ -100,10 +122,10 @@ int APIENTRY wWinMain(
         return FALSE;
     }
 
+    // ancient main message loop
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SOLIDAIR));
     MSG msg;
 
-    // ancient main message loop
     while (GetMessage(&msg, nullptr, 0, 0))
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -211,45 +233,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HBRUSH shrubbery = CreateSolidBrush(RGB(0, 0x80, 0));
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
-            const auto dist = 100 - cdWidth;
-            cdtDraw(hdc, dist, dist, 0, 1, 0);
-            cdtDraw(hdc, dist + 0 * (dist + cdWidth), dist + cdHight + dist, 0, 1, 0);
-            cdtDraw(hdc, dist + 1 * (dist + cdWidth), dist + cdHight + dist, 1, 1, 0);
-            cdtDraw(hdc, dist + 2 * (dist + cdWidth), dist + cdHight + dist, 2, 1, 0);
-            cdtDraw(hdc, dist + 3 * (dist + cdWidth), dist + cdHight + dist, 3, 1, 0);
-            cdtDraw(hdc, dist + 4 * (dist + cdWidth), dist + cdHight + dist, 4, 1, 0);
-            cdtDraw(hdc, dist + 5 * (dist + cdWidth), dist + cdHight + dist, 5, 1, 0);
-            cdtDraw(hdc, dist + 6 * (dist + cdWidth), dist + cdHight + dist, 0, 1, 0);
-
-            // the target piles
             SelectObject(hdc, GetSysColorBrush(DKGRAY_BRUSH));
-            Rectangle(
-                hdc,
-                dist + 3 * (dist + cdWidth),
-                dist, dist + 3 * (dist + cdWidth) + cdWidth,
-                dist + cdHight
-            );
+            
+            // the stockpile
+            cdtDraw(hdc, dist, dist, Cards::BackDivine, 1, 0);
 
-            Rectangle(
-                hdc,
-                dist + 4 * (dist + cdWidth),
-                dist, dist + 4 * (dist + cdWidth) + cdWidth,
-                dist + cdHight
-            );
+            for (int pi = 0; pi < 7; ++pi)
+            {
+                const auto& dpos = gameState.dagoPiles[pi].pos;
 
-            Rectangle(
-                hdc,
-                dist + 5 * (dist + cdWidth),
-                dist, dist + 5 * (dist + cdWidth) + cdWidth,
-                dist + cdHight
-            );
+                cdtDraw(hdc, dpos.left, dpos.top, pi % 6, 0, 0);
+                if (pi < 4)
+                {
+                    // the target piles
+                    const auto& tpos = gameState.targetPiles[pi].pos;
 
-            Rectangle(
-                hdc,
-                dist + 6 * (dist + cdWidth),
-                dist, dist + 6 * (dist + cdWidth) + cdWidth,
-                dist + cdHight
-            );
+                    Rectangle(
+                        hdc,
+                        tpos.left,
+                        tpos.top,
+                        tpos.right,
+                        tpos.bottom
+                    );
+                }
+            }
 
             EndPaint(hWnd, &ps);
         }

@@ -1,20 +1,101 @@
 #pragma once
 
 typedef enum {
+	LaubAsslikum = 0,
+	Laub2 = 1,
+	Laub3 = 2,
+	Laub4 = 3,
+	Laub5 = 4,
+	Laub6 = 5,
+	Laub7 = 6,
+	Laub8 = 7,
+	Laub9 = 8,
+	Laub10 = 9,
+	LaubBublikum = 10,
+	LaubDamlikum = 11,
+	LaubKinigl = 12,
 
+	KaroAsslikum = 13,
+	Karo2 = 14,
+	Karo3 = 15,
+	Karo4 = 16,
+	Karo5 = 17,
+	Karo6 = 18,
+	Karo7 = 19,
+	Karo8 = 20,
+	Karo9 = 21,
+	Karo10 = 22,
+	KaroBublikum = 23,
+	KaroDamlikum = 24,
+	KaroKinigl = 25,
+
+	HerzAsslikum = 26,
+	Herz2 = 27,
+	Herz3 = 28,
+	Herz4 = 29,
+	Herz5 = 30,
+	Herz6 = 31,
+	Herz7 = 32,
+	Herz8 = 33,
+	Herz9 = 34,
+	Herz10 = 35,
+	HerzBublikum = 36,
+	HerzDamlikum = 37,
+	HerzKinigl = 38,
+
+	PikAsslikum = 39,
+	Pik2 = 40,
+	Pik3 = 41,
+	Pik4 = 42,
+	Pik5 = 43,
+	Pik6 = 44,
+	Pik7 = 45,
+	Pik8 = 46,
+	Pik9 = 47,
+	Pik10 = 48,
+	PikBublikum = 49,
+	PikDamlikum = 50,
+	PikKinigl = 51,
+	
+	Joker = 52,
+
+	BackBloodot = 54,
+	BackCat = 55,
+	BackColorful = 56,
+	BackCubert = 57,
+	BackDivine = 58,
+	BackPaper = 59,
+	BackParkett = 60,
+	BackRed = 61,
+	BackRocks = 62,
+	BackSky = 63,
+	BackSpace = 64,
+	BackIce = 65,
+	BackMaple = 66,
+	BackPine = 67,
+	BackSafety = 68
 } Cards;
+
+typedef struct {
+	int left;
+	int top;
+	int right;
+	int bottom;
+} CardRect;
 
 typedef struct {
 	int numCardsOnPile;
 	Cards pile[13];
+	CardRect pos;
 } TargetPile;
 
 typedef struct {
 	int numCardsOnPile;
 	Cards pile[100];
+	CardRect pos;
 } DagoPile;
 
 typedef struct {
 	TargetPile targetPiles[4];
-	DagoPile dagoPiles[13];
+	DagoPile dagoPiles[7];
 } GameState;

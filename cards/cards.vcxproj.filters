@@ -60,5 +60,50 @@
     <Image Include="res\pik-damlikum.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\back-bloodot.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-cat.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-colorful.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-cubert.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-divine.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-paper.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-parkett.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-red.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-rocks.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-sky.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-space.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-ice.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-maple.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-pine.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\back-safety.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

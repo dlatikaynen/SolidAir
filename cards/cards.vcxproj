@@ -154,6 +154,21 @@
     <ResourceCompile Include="cards.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\back-bloodot.png" />
+    <Image Include="res\back-cat.png" />
+    <Image Include="res\back-colorful.png" />
+    <Image Include="res\back-cubert.png" />
+    <Image Include="res\back-divine.png" />
+    <Image Include="res\back-ice.png" />
+    <Image Include="res\back-maple.png" />
+    <Image Include="res\back-paper.png" />
+    <Image Include="res\back-parkett.png" />
+    <Image Include="res\back-pine.png" />
+    <Image Include="res\back-red.png" />
+    <Image Include="res\back-rocks.png" />
+    <Image Include="res\back-safety.png" />
+    <Image Include="res\back-sky.png" />
+    <Image Include="res\back-space.png" />
     <Image Include="res\clubs-asslikum.png" />
     <Image Include="res\clubs-kinigl.png" />
     <Image Include="res\pik-8.png" />

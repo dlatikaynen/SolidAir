@@ -52,7 +52,8 @@ extern "C" BOOL WINAPI cdtInit(int* width, int* height)
             case 1: resNr = pik_9; break;
             case 2: resNr = pik_bublikum; break;
             case 3: resNr = pik_damlikum; break;
-            case 4: resNr = pik_kinigl; break;
+            case 4: resNr = laub_kinigl; break;
+            case 5: resNr = laub_asslikum; break;
         }
 
         if (resNr == 0)

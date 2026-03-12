@@ -3,8 +3,8 @@
 // Used by cards.rc
 //
 #define IDB_PNG1                        101
-#define pik_asslikum                    101
-#define pik_kinigl                      102
+#define laub_asslikum                   101
+#define laub_kinigl                     102
 #define pik_8                           103
 #define pik_9                           104
 #define pik_bublikum                    105

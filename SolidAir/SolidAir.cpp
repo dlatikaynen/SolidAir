@@ -218,8 +218,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             cdtDraw(hdc, dist + 2 * (dist + cdWidth), dist + cdHight + dist, 2, 1, 0);
             cdtDraw(hdc, dist + 3 * (dist + cdWidth), dist + cdHight + dist, 3, 1, 0);
             cdtDraw(hdc, dist + 4 * (dist + cdWidth), dist + cdHight + dist, 4, 1, 0);
-            cdtDraw(hdc, dist + 5 * (dist + cdWidth), dist + cdHight + dist, 0, 1, 0);
-            cdtDraw(hdc, dist + 6 * (dist + cdWidth), dist + cdHight + dist, 1, 1, 0);
+            cdtDraw(hdc, dist + 5 * (dist + cdWidth), dist + cdHight + dist, 5, 1, 0);
+            cdtDraw(hdc, dist + 6 * (dist + cdWidth), dist + cdHight + dist, 0, 1, 0);
 
             // the target piles
             SelectObject(hdc, GetSysColorBrush(DKGRAY_BRUSH));

@@ -2,6 +2,8 @@
 
 #include "resource.h"
 
+void InitNewDagobert();
+
 typedef BOOL(WINAPI* pfcdtInit)(int*, int*);
 typedef BOOL(WINAPI* pfcdtDraw)(HDC, int x, int y, int card, int type, DWORD color);
 typedef BOOL(WINAPI* pfcdtDrawEx)(HDC, int x, int y, int dx, int dy, int card, int type, DWORD color);

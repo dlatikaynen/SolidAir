@@ -1,6 +1,7 @@
 #pragma once
 
 typedef enum {
+	// ♣
 	LaubAsslikum = 0,
 	Laub2 = 1,
 	Laub3 = 2,
@@ -15,6 +16,7 @@ typedef enum {
 	LaubDamlikum = 11,
 	LaubKinigl = 12,
 
+	// ♦
 	KaroAsslikum = 13,
 	Karo2 = 14,
 	Karo3 = 15,
@@ -29,6 +31,7 @@ typedef enum {
 	KaroDamlikum = 24,
 	KaroKinigl = 25,
 
+	// ♥
 	HerzAsslikum = 26,
 	Herz2 = 27,
 	Herz3 = 28,
@@ -43,6 +46,7 @@ typedef enum {
 	HerzDamlikum = 37,
 	HerzKinigl = 38,
 
+	// ♠
 	PikAsslikum = 39,
 	Pik2 = 40,
 	Pik3 = 41,
@@ -85,17 +89,27 @@ typedef struct {
 
 typedef struct {
 	int numCardsOnPile;
+	Cards pile[52];
+	CardRect pos;
+	int uncovered; // -1 means not uncovered
+} StockPile;
+
+typedef struct {
+	int numCardsOnPile;
 	Cards pile[13];
 	CardRect pos;
 } TargetPile;
 
 typedef struct {
 	int numCardsOnPile;
+	int uncoveredFrom; // index
 	Cards pile[100];
 	CardRect pos;
 } DagoPile;
 
 typedef struct {
+	Cards background;
+	StockPile stockpile;
 	TargetPile targetPiles[4];
 	DagoPile dagoPiles[7];
 } GameState;

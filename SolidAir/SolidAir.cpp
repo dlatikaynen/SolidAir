@@ -1,10 +1,10 @@
 #include "framework.h"
 #include "SolidAir.h"
-#include "schema.h"
 #include <iostream>
 #include <vector>
 #include <ranges>
 #include <random>
+#include <format>
 
 constexpr auto MAX_LOADSTRING = 100;
 
@@ -29,6 +29,12 @@ int cdWidth;
 int cdHight;
 int dist = 0;
 GameState gameState = {};
+bool hasCapturedTheMouseToDragCards = false;
+bool CanInitiateDragHere(POINT p);
+POINT draggedFrom;
+POINT dragOffset;
+CardsBeingHit cardsBeingDragged;
+CardsBeingHit cardLastClicked;
 
 int APIENTRY wWinMain(
     _In_ HINSTANCE hInstance,
@@ -99,9 +105,17 @@ int APIENTRY wWinMain(
     // initialize the game state
     dist = 100 - cdWidth;
     gameState.background = Cards::BackBloodot;
+    cardsBeingDragged.fromStockpile = false;
+    cardsBeingDragged.pile = nullptr;
+    cardsBeingDragged.index = -1;
+
     gameState.stockpile.numCardsOnPile = 0;
     gameState.stockpile.uncovered = -1;
-
+    gameState.stockpile.pos.left = dist;
+    gameState.stockpile.pos.top = dist;
+    gameState.stockpile.pos.right = dist + cdWidth;
+    gameState.stockpile.pos.bottom = dist + cdHight;
+ 
     for (int pi = 0; pi < 7; ++pi)
     {
         if (pi < 4)
@@ -168,7 +182,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SOLIDAIR));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
+    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SOLIDAIR);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -183,7 +197,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     HWND hWnd = CreateWindowW(
         szWindowClass,
         szTitle,
-        WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
         CW_USEDEFAULT,
         0,
         CW_USEDEFAULT,
@@ -201,6 +215,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return false;
     }
 
+    LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+    SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle | WS_EX_COMPOSITED);
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
@@ -211,31 +227,98 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-    case WM_COMMAND:
+    case WM_LBUTTONDOWN:
         {
-            int wmId = LOWORD(wParam);
+            const auto& pos = MAKEPOINTS(lParam);
+            POINT pixelPos = { pos.x, pos.y };
 
-            switch (wmId)
+            //if (DragDetect(hWnd, pixelPos))
+            //{
+            //    if (CanInitiateDragHere(pixelPos))
+            //    {
+            //        draggedFrom.x = pixelPos.x;
+            //        draggedFrom.y = pixelPos.y;
+            //        dragOffset.x = 0;
+            //        dragOffset.y = 0;
+            //        hasCapturedTheMouseToDragCards = true;
+            //    }
+            //}
+            //else
             {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+                HitTest(&pixelPos, &cardLastClicked);
             }
         }
 
         break;
 
+    case WM_LBUTTONUP:
+        {
+            if (hasCapturedTheMouseToDragCards)
+            {
+                ReleaseCapture();
+                hasCapturedTheMouseToDragCards = false;
+            }
+            else
+            {
+                const auto& pos = MAKEPOINTS(lParam);
+                POINT pixelPos = { pos.x, pos.y };
+                CardsBeingHit stillHit;
+
+                if (HitTest(&pixelPos, &stillHit))
+                {
+                    if (
+                        (stillHit.fromStockpile && cardLastClicked.fromStockpile && stillHit.index != -1 && stillHit.index == cardLastClicked.index)
+                        ||
+                        (!stillHit.fromStockpile && !cardLastClicked.fromStockpile && stillHit.index != -1 && stillHit.index == cardLastClicked.index && stillHit.pile->pos.left == cardLastClicked.pile->pos.left)
+                    )
+                    {
+                        ClickedOnCard(hWnd);
+                    }
+                }
+
+                // not clicked in any reasonable way - must attempt again
+                cardLastClicked.fromStockpile = false;
+                cardLastClicked.pile = nullptr;
+                cardLastClicked.index = -1;
+            }
+        }
+
+        break;
+
+    case WM_MOUSEMOVE:
+        {
+            if (lParam & MK_LBUTTON)
+            {
+                if (hasCapturedTheMouseToDragCards)
+                {
+                    const auto& pos = MAKEPOINTS(lParam);
+                    POINT pixelPos = { pos.x, pos.y };
+
+                    dragOffset.x = pixelPos.x - draggedFrom.x;
+                    dragOffset.y = pixelPos.y - draggedFrom.y;
+                    InvalidateRect(hWnd, NULL, false);
+                }
+            }
+        }
+
+        break;
+
+    case WM_ERASEBKGND:
+        // indicate that we handle it
+        return 1;
+
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
+            HDC rawDc = BeginPaint(hWnd, &ps);
+            HDC hdc = CreateCompatibleDC(rawDc);
+            RECT clientRect;
+            GetClientRect(hWnd, &clientRect);
+            int width = clientRect.right - clientRect.left;
+            int height = clientRect.bottom - clientRect.top;
+            HBITMAP memBitmap = CreateCompatibleBitmap(rawDc, width, height);
+            SelectObject(hdc, memBitmap);
+
             const auto& bkColor = RGB(0, 0x80, 0);
             SetBkColor(hdc, bkColor);
             HBRUSH shrubbery = CreateSolidBrush(bkColor);
@@ -243,18 +326,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
             HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, GetSysColorBrush(GRAY_BRUSH));
-
-            // the stockpile
-            if (gameState.stockpile.uncovered == -1)
-            {
-                cdtDraw(hdc, dist, dist, gameState.background, 1, 0);
-            }
-            else
-            {
-                const auto& uncoveredCard = gameState.stockpile.pile[gameState.stockpile.uncovered];
-                
-                cdtDraw(hdc, dist, dist, uncoveredCard, 1, 0);
-            }
 
             for (int pi = 0; pi < 7; ++pi)
             {
@@ -323,9 +394,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
 
+            // the stockpile - last so it is on top of everything else
+            if (gameState.stockpile.uncovered == -1)
+            {
+                cdtDraw(hdc, dist, dist, gameState.background, 1, 0);
+            }
+            else
+            {
+                const auto& uncoveredCard = gameState.stockpile.pile[gameState.stockpile.uncovered];
+
+                if (hasCapturedTheMouseToDragCards)
+                {
+                    cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
+                }
+                else
+                {
+                    cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, uncoveredCard, 1, 0);
+                }
+            }
+
             SelectObject(hdc, oldBrush);
             DeleteObject(hDashPen);
+            BitBlt(rawDc, 0, 0, width, height, hdc, 0, 0, SRCCOPY);
+            DeleteObject(memBitmap);
+            DeleteDC(hdc);
             EndPaint(hWnd, &ps);
+        }
+
+        break;
+
+    case WM_COMMAND:
+        {
+            int wmId = LOWORD(wParam);
+
+            switch (wmId)
+            {
+            case IDM_ABOUT:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                break;
+
+            case IDM_EXIT:
+                DestroyWindow(hWnd);
+                break;
+
+            default:
+                return DefWindowProc(hWnd, message, wParam, lParam);
+            }
         }
 
         break;
@@ -397,6 +511,85 @@ void InitNewDagobert()
 
         ++i;
     }
+}
+
+bool CanInitiateDragHere(POINT p)
+{
+    OutputDebugString(std::format(L"determining whether there is a draggable card at {0}, {1}\n", p.x, p.y).c_str());
+    
+    if (HitTest(&p, &cardsBeingDragged))
+    {
+        // card must be available and uncovered in order to drag it
+        if (cardsBeingDragged.fromStockpile)
+        {
+            return gameState.stockpile.numCardsOnPile > 0 && gameState.stockpile.uncovered != -1;
+        }
+
+        return cardsBeingDragged.pile->uncoveredFrom <= cardsBeingDragged.index;
+    }
+
+    return false;
+}
+
+bool HitTest(POINT *p, CardsBeingHit* cards)
+{
+    cards->fromStockpile = false;
+    cards->pile = nullptr;
+    cards->index = -1;
+
+    // (1) is it the stockpile?
+    const auto& spPos = gameState.stockpile.pos;
+    const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
+
+    if (PtInRect(&stockPile, *p))
+    {
+        // is there a card on the stockpile?
+        if (gameState.stockpile.numCardsOnPile != 0)
+        {
+            // take this one!
+            cards->fromStockpile = true;
+            cards->pile = nullptr;
+            cards->index = gameState.stockpile.numCardsOnPile - 1;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void ClickedOnCard(HWND hWnd)
+{
+    if (cardLastClicked.fromStockpile && gameState.stockpile.numCardsOnPile != 0)
+    {
+        const auto& spPos = gameState.stockpile.pos;
+        const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
+
+        if (gameState.stockpile.uncovered == -1)
+        {
+            // uncover the stockpile
+            gameState.stockpile.uncovered = 0;
+
+            InvalidateRect(hWnd, &stockPile, false);
+        }
+        else
+        { 
+            // cycle to the next card on the stockpile
+            if (gameState.stockpile.numCardsOnPile > 1)
+            {
+                ++gameState.stockpile.uncovered;
+
+                // cycle through them
+                if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile)
+                {
+                    gameState.stockpile.uncovered = 0;
+                }
+
+                InvalidateRect(hWnd, &stockPile, false);
+            }
+        }
+    }
+
 }
 
 /// <summary>

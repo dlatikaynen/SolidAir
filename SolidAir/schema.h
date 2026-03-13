@@ -113,3 +113,9 @@ typedef struct {
 	TargetPile targetPiles[4];
 	DagoPile dagoPiles[7];
 } GameState;
+
+typedef struct {
+	bool fromStockpile;
+	DagoPile* pile; // nullptr if from stockpile
+	int index;
+} CardsBeingHit;

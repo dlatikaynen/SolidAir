@@ -129,5 +129,128 @@
     <Image Include="res\joker.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\laub-3.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-3.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-4.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-6.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-7.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-8.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-9.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-10.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-asslikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-bublikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\herz-kinigl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-2.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-3.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-4.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-5.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-6.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-7.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-8.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-9.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-asslikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-bublikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\karo-kinigl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-2.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-4.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-5.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-6.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-7.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-8.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-9.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-10.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-2.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-3.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-4.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-5.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-6.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-7.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-10.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-asslikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\pik-kinigl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-kinigl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\laub-asslikum.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

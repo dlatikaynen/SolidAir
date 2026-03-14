@@ -1,3 +1,4 @@
+#define SECURITY_WIN32
 #include "framework.h"
 #include "SolidAir.h"
 #include <iostream>
@@ -5,20 +6,17 @@
 #include <ranges>
 #include <random>
 #include <format>
+#include <windows.h>
+#include <Lmcons.h>
+#include <Security.h>
+#pragma comment (lib,"Secur32.lib")
 
 constexpr auto MAX_LOADSTRING = 100;
 constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
 
-// Global Variables
-HINSTANCE hInst;                      // current instance
-WCHAR szTitle[MAX_LOADSTRING];        // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];  // the main window class name
-
-// Forward declarations of functions included in this code module
-ATOM                RegisterWindowClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+HINSTANCE hInst;
+WCHAR szTitle[MAX_LOADSTRING];
+WCHAR szWindowClass[MAX_LOADSTRING];
 
 pfcdtInit cdtInit;
 pfcdtDraw cdtDraw;
@@ -161,6 +159,7 @@ int APIENTRY wWinMain(
         }
     }
 
+    // cleanup
     if (cards != 0)
     {
         cdtTerm();
@@ -178,18 +177,18 @@ ATOM RegisterWindowClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex = {0};
 
-    wcex.cbSize         = sizeof(WNDCLASSEX);
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SOLIDAIR));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SOLIDAIR);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.cbSize        = sizeof(WNDCLASSEX);
+    wcex.style         = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc   = WndProc;
+    wcex.cbClsExtra    = 0;
+    wcex.cbWndExtra    = 0;
+    wcex.hInstance     = hInstance;
+    wcex.hIcon         = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SOLIDAIR));
+    wcex.hCursor       = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName  = MAKEINTRESOURCEW(IDC_SOLIDAIR);
+    wcex.lpszClassName = szWindowClass;
+    wcex.hIconSm       = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
@@ -225,7 +224,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     UpdateWindow(hWnd);
     hDragCursor = LoadCursor(NULL, IDC_HAND);
 
-    return TRUE;
+    wchar_t username[UNLEN + 1];
+    DWORD username_len = UNLEN + 1;
+    if (GetUserNameEx(EXTENDED_NAME_FORMAT::NameDisplay, username, &username_len) == 0)
+    {
+        username[0] = 0;
+    }
+
+    return true;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -477,6 +483,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (hasCapturedTheMouseToDragCards)
                 {
+                    // if the card being dragged is already off the pile, even slightly,
+                    // only then we draw the next card (or the empty pile indication) underneath
+                    if (dragOffset.x != 0 || dragOffset.y != 0)
+                    {
+                        if (gameState.stockpile.numCardsOnPile == 1)
+                        {
+                            Rectangle(
+                                hdc,
+                                gameState.stockpile.pos.left,
+                                gameState.stockpile.pos.top,
+                                gameState.stockpile.pos.right,
+                                gameState.stockpile.pos.bottom
+                            );
+                        }
+                        else if (gameState.stockpile.numCardsOnPile > 1)
+                        {
+                            // > 1 because the card currently being dragged, still counts as top of the pile until it is placed
+                            int nextStockpileIndex = gameState.stockpile.uncovered + 1;
+
+                            if (nextStockpileIndex == gameState.stockpile.numCardsOnPile)
+                            {
+                                nextStockpileIndex = 0;
+                            }
+
+                            const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
+
+                            cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
+                        }
+                    }
+
                     cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
                 }
                 else

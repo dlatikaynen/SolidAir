@@ -28,6 +28,8 @@ int cdWidth;
 int cdHight;
 int dist = 0;
 GameState gameState = {};
+
+// mouse operation
 bool hasCapturedTheMouseToDragCards = false;
 bool CanInitiateDragHere(POINT p);
 POINT lastLeftDownAt;
@@ -37,6 +39,10 @@ POINT dragOffset;
 HCURSOR hDragCursor = 0;
 CardsBeingHit cardsBeingDragged;
 CardsBeingHit cardLastClicked;
+
+// keyboard operation
+bool isCtrlPressed = false;
+int currentDagopi = -1;
 
 int APIENTRY wWinMain(
     _In_ HINSTANCE hInstance,
@@ -371,6 +377,106 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         break;
 
+    case WM_KEYDOWN:
+        // keyboard operation:
+        // 1..7           uncover the dagopile if covered
+        // 1..7           select the dagopile as the drag source if already uncovered and not empty
+        // 1..7           place the possible move from a previously selected, different dagopile there,
+        //                if the source is then empty, set the target as the new selection, otherwise
+        //                uncover, otherwise leave the selection at the source
+        // <Alt> + 1..7   place the possible move from a previously selected, different dagopile,
+        //                and set the destination as the new selected source
+        // <Strg>         alone uncovers a covered stockpile, and keyupped without n cycles the stockpile
+        // <Strg> + 1..7  place the stockpile top card on that dagopile, keeping any selected source
+        //                dagopile unless there is none currently set, then set it
+        // <Strg+Alt> + n place the stockpile top card on that dagopile, and set the destination as
+        //                the new selected source
+        // <Shift> + 1..4 take the card home
+        {
+            // <Strg> alone uncovers a covered stockpile, and keyupped without n cycles the stockpile
+            if (wParam == VK_CONTROL && isCtrlPressed == false)
+            {
+                isCtrlPressed = true;
+
+                if (UncoverStockpile(hWnd))
+                {
+                    // can still hit a number to place it, this is just so ctrl+keyup will not cycle
+                    isCtrlPressed = false;
+
+                    return 0;
+                }
+            }
+
+            int newPi = -1;
+
+            if (wParam == VK_NUMPAD1 || wParam == '1')
+            {
+                newPi = 0;
+            }
+            if (wParam == VK_NUMPAD2 || wParam == '2')
+            {
+                newPi = 1;
+            }
+            if (wParam == VK_NUMPAD3 || wParam == '3')
+            {
+                newPi = 2;
+            }
+            if (wParam == VK_NUMPAD4 || wParam == '4')
+            {
+                newPi = 3;
+            }
+            if (wParam == VK_NUMPAD5 || wParam == '5')
+            {
+                newPi = 4;
+            }
+            if (wParam == VK_NUMPAD6 || wParam == '6')
+            {
+                newPi = 5;
+            }
+            if (wParam == VK_NUMPAD7 || wParam == '7')
+            {
+                newPi = 6;
+            }
+
+            if (newPi != -1)
+            {
+                if (isCtrlPressed)
+                {
+                    isCtrlPressed = false;
+
+                    // <Strg> + 1..7 place the stockpile top card on that dagopile, keeping any selected source
+                    //               dagopile unless there is none currently set, then set it
+                    PlaceStockpileOn(hWnd, newPi);
+
+                    if (currentDagopi == -1)
+                    {
+                        currentDagopi = newPi;
+                    }
+                }
+
+                return 0;
+            }
+        }
+
+        break;
+
+    case WM_KEYUP:
+        // <Strg> alone uncovers a covered stockpile, and keyupped without n cycles the stockpile
+        if (wParam == VK_CONTROL)
+        {
+            if (isCtrlPressed)
+            {
+                isCtrlPressed = false;
+
+                if (CycleStockpile(hWnd))
+                {
+                    return 0;
+                }
+            }
+        }
+
+        break;
+
     case WM_SETCURSOR:
         if (hasCapturedTheMouseToDragCards)
         {
@@ -672,29 +778,112 @@ void ClickedOnCard(HWND hWnd)
 
         if (gameState.stockpile.uncovered == -1)
         {
-            // uncover the stockpile
-            gameState.stockpile.uncovered = 0;
-
-            InvalidateRect(hWnd, &stockPile, false);
+            UncoverStockpile(hWnd);
         }
         else
         { 
-            // cycle to the next card on the stockpile
-            if (gameState.stockpile.numCardsOnPile > 1)
-            {
-                ++gameState.stockpile.uncovered;
-
-                // cycle through them
-                if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile)
-                {
-                    gameState.stockpile.uncovered = 0;
-                }
-
-                InvalidateRect(hWnd, &stockPile, false);
-            }
+            // repeatedly clicking here cycles it
+            CycleStockpile(hWnd);
         }
     }
 
+}
+
+bool UncoverStockpile(HWND hWnd)
+{
+    if (gameState.stockpile.numCardsOnPile != 0 && gameState.stockpile.uncovered == -1)
+    {
+        const auto& spPos = gameState.stockpile.pos;
+        const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
+
+        gameState.stockpile.uncovered = 0;
+
+        InvalidateRect(hWnd, &stockPile, false);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool CycleStockpile(HWND hWnd)
+{
+    // can't cycle on a single card, can't cycle until uncovered
+    if (gameState.stockpile.numCardsOnPile > 1 && gameState.stockpile.uncovered != -1)
+    {
+        ++gameState.stockpile.uncovered;
+
+        // cycle through them
+        if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile)
+        {
+            gameState.stockpile.uncovered = 0;
+        }
+
+        const auto& spPos = gameState.stockpile.pos;
+        const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
+
+        InvalidateRect(hWnd, &stockPile, false);
+        
+        return true;
+    }
+
+    return false;
+}
+
+bool PlaceStockpileOn(HWND hWnd, int pi)
+{
+    if (gameState.stockpile.uncovered != -1 && gameState.stockpile.numCardsOnPile >= 1)
+    {
+        const auto& card = gameState.stockpile.pile[gameState.stockpile.uncovered];
+
+        // now, can it be placed there?
+        auto& tP = gameState.dagoPiles[pi];
+
+        // add it to the target pile
+        tP.pile[tP.numCardsOnPile] = card;
+        tP.numCardsOnPile++;
+
+        // remove it from the stockpile
+        if (gameState.stockpile.numCardsOnPile == 1)
+        {
+            // our stockpile is now completely empty
+            gameState.stockpile.numCardsOnPile = 0;
+            gameState.stockpile.uncovered = -1;
+        }
+        else
+        {
+            if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile - 1)
+            {
+                // wraparound
+                gameState.stockpile.uncovered == 0;
+            }
+            else
+            {
+                for (int i = gameState.stockpile.uncovered + 1; i < gameState.stockpile.numCardsOnPile; ++i)
+                {
+                    gameState.stockpile.pile[i - 1] = gameState.stockpile.pile[i];
+                }
+            }
+
+            --gameState.stockpile.numCardsOnPile;
+        }
+
+        // redraw the stockpile
+        const auto& spPos = gameState.stockpile.pos;
+        const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
+
+        InvalidateRect(hWnd, &stockPile, false);
+
+        // redraw the target pile
+        const auto& tpPos = tP.pos;
+        const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom + (tP.numCardsOnPile - 1) * dist };
+
+        InvalidateRect(hWnd, &targetPile, false);
+
+        return true;
+    }
+
+    return false;
 }
 
 /// <summary>

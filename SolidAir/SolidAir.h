@@ -10,6 +10,9 @@ INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 void InitNewDagobert();
 bool HitTest(POINT *p, CardsBeingHit* cards);
 void ClickedOnCard(HWND hWnd);
+bool UncoverStockpile(HWND hWnd);
+bool CycleStockpile(HWND hWnd);
+bool PlaceStockpileOn(HWND hWnd, int pi);
 
 typedef BOOL(WINAPI* pfcdtInit)(int*, int*);
 typedef BOOL(WINAPI* pfcdtDraw)(HDC, int x, int y, int card, int type, DWORD color);

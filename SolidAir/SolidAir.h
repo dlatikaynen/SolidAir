@@ -12,7 +12,14 @@ bool HitTest(POINT *p, CardsBeingHit* cards);
 void ClickedOnCard(HWND hWnd);
 bool UncoverStockpile(HWND hWnd);
 bool CycleStockpile(HWND hWnd);
-bool PlaceStockpileOn(HWND hWnd, int pi);
+bool PlaceStockpileOnDago(HWND hWnd, int pi);
+bool PlaceStockpileOnTarget(HWND hWnd, int pi);
+void RemoveFromStockpile(HWND hWnd);
+bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile);
+bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile);
+bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor);
+bool GetColor(Cards card);
+int GetRank(Cards card);
 
 typedef BOOL(WINAPI* pfcdtInit)(int*, int*);
 typedef BOOL(WINAPI* pfcdtDraw)(HDC, int x, int y, int card, int type, DWORD color);

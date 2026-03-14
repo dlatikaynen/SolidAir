@@ -1,6 +1,8 @@
 #pragma once
 
 typedef enum {
+	Empty = -1,
+
 	// ♣
 	LaubAsslikum = 0,
 	Laub2 = 1,
@@ -79,6 +81,12 @@ typedef enum {
 	BackPine = 67,
 	BackSafety = 68
 } Cards;
+
+typedef enum {
+	Ignore,
+	MustMatch,
+	MustDiffer
+} CardColorMatchMode;
 
 typedef struct {
 	int left;

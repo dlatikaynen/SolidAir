@@ -42,6 +42,8 @@ CardsBeingHit cardLastClicked;
 
 // keyboard operation
 bool isCtrlPressed = false;
+bool isAltPressed = false;
+bool isShiftPressed = false;
 int currentDagopi = -1;
 
 int APIENTRY wWinMain(
@@ -391,7 +393,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //                dagopile unless there is none currently set, then set it
         // <Strg+Alt> + n place the stockpile top card on that dagopile, and set the destination as
         //                the new selected source
-        // <Shift> + 1..4 take the card home
+        // <Shift> + 1..4 take the card home (also works directly from stockpile, if there is a fitting
+        //                one, and there is no selected source dagopile or selected is not eligible
         {
             // <Strg> alone uncovers a covered stockpile, and keyupped without n cycles the stockpile
             if (wParam == VK_CONTROL && isCtrlPressed == false)
@@ -405,6 +408,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                     return 0;
                 }
+            }
+
+            // keep track of the other two modifier keys
+            if ((wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed == false)
+            {
+                isShiftPressed = true;
+            }
+            else if ((wParam == VK_LMENU || wParam == VK_RMENU) && isAltPressed == false)
+            {
+                isAltPressed = true;
             }
 
             int newPi = -1;
@@ -442,16 +455,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 if (isCtrlPressed)
                 {
-                    isCtrlPressed = false;
-
                     // <Strg> + 1..7 place the stockpile top card on that dagopile, keeping any selected source
                     //               dagopile unless there is none currently set, then set it
-                    PlaceStockpileOn(hWnd, newPi);
+                    PlaceStockpileOnDago(hWnd, newPi);
 
-                    if (currentDagopi == -1)
+                    // <Strg+Alt> + n place the stockpile top card on that dagopile, and set the destination as
+                    //                the new selected source
+                    if (currentDagopi == -1 || isAltPressed)
                     {
                         currentDagopi = newPi;
                     }
+
+                    isCtrlPressed = false;
+                }
+                else if (isAltPressed)
+                {
+                    // <Alt> + 1..7 place the possible move from a previously selected, different dagopile,
+                    //              and set the destination as the new selected source
+                    PlaceStockpileOnDago(hWnd, newPi);
+                    currentDagopi = newPi;
+                }
+                else if (isShiftPressed && newPi <= 4)
+                {
+                    // <Shift> + 1..4 take the card home (also works directly from stockpile, if there is a fitting
+                    //                one, and there is no selected source dagopile or selected is not eligible
+                    if (currentDagopi != -1)
+                    {
+                        // source is dago last one
+
+                        return 0;
+                    }
+
+                    PlaceStockpileOnTarget(hWnd, newPi);
+                }
+                else
+                {
+                    // 1..7 uncover the dagopile if covered
+                    // 1..7 select the dagopile as the drag source if already uncovered and not empty
+                    // 1..7 place the possible move from a previously selected, different dagopile there,
+                    //      if the source is then empty, set the target as the new selection, otherwise
+                    //      uncover, otherwise leave the selection at the source
+                    
+
                 }
 
                 return 0;
@@ -473,6 +518,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     return 0;
                 }
             }
+        }
+
+        if ((wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed)
+        {
+            isShiftPressed = false;
+        }
+
+        else if ((wParam == VK_LMENU || wParam == VK_RMENU) && isAltPressed)
+        {
+            isAltPressed = false;
         }
 
         break;
@@ -830,53 +885,59 @@ bool CycleStockpile(HWND hWnd)
     return false;
 }
 
-bool PlaceStockpileOn(HWND hWnd, int pi)
+bool PlaceStockpileOnDago(HWND hWnd, int pi)
 {
     if (gameState.stockpile.uncovered != -1 && gameState.stockpile.numCardsOnPile >= 1)
     {
         const auto& card = gameState.stockpile.pile[gameState.stockpile.uncovered];
 
         // now, can it be placed there?
-        auto& tP = gameState.dagoPiles[pi];
+        auto& dP = gameState.dagoPiles[pi];
+        if (!CanPlaceCardOnDagoPile(card, &dP))
+        {
+            return false;
+        }
+
+        // add it to the target pile
+        dP.pile[dP.numCardsOnPile] = card;
+        dP.numCardsOnPile++;
+
+        RemoveFromStockpile(hWnd);
+
+        // redraw the dago pile
+        const auto& tpPos = dP.pos;
+        const auto& dagoPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom + (dP.numCardsOnPile - 1) * dist };
+
+        InvalidateRect(hWnd, &dagoPile, false);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool PlaceStockpileOnTarget(HWND hWnd, int pi)
+{
+    if (gameState.stockpile.uncovered != -1 && gameState.stockpile.numCardsOnPile >= 1)
+    {
+        const auto& card = gameState.stockpile.pile[gameState.stockpile.uncovered];
+
+        // now, can it be placed there?
+        auto& tP = gameState.targetPiles[pi];
+        if (!CanPlaceCardOnTargetPile(card, &tP))
+        {
+            return false;
+        }
 
         // add it to the target pile
         tP.pile[tP.numCardsOnPile] = card;
         tP.numCardsOnPile++;
 
-        // remove it from the stockpile
-        if (gameState.stockpile.numCardsOnPile == 1)
-        {
-            // our stockpile is now completely empty
-            gameState.stockpile.numCardsOnPile = 0;
-            gameState.stockpile.uncovered = -1;
-        }
-        else
-        {
-            if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile - 1)
-            {
-                // wraparound
-                gameState.stockpile.uncovered = 0;
-            }
-            else
-            {
-                for (int i = gameState.stockpile.uncovered + 1; i < gameState.stockpile.numCardsOnPile; ++i)
-                {
-                    gameState.stockpile.pile[i - 1] = gameState.stockpile.pile[i];
-                }
-            }
-
-            --gameState.stockpile.numCardsOnPile;
-        }
-
-        // redraw the stockpile
-        const auto& spPos = gameState.stockpile.pos;
-        const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
-
-        InvalidateRect(hWnd, &stockPile, false);
+        RemoveFromStockpile(hWnd);
 
         // redraw the target pile
         const auto& tpPos = tP.pos;
-        const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom + (tP.numCardsOnPile - 1) * dist };
+        const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom };
 
         InvalidateRect(hWnd, &targetPile, false);
 
@@ -884,6 +945,130 @@ bool PlaceStockpileOn(HWND hWnd, int pi)
     }
 
     return false;
+}
+
+void RemoveFromStockpile(HWND hWnd)
+{
+    // remove it from the stockpile
+    if (gameState.stockpile.numCardsOnPile == 1)
+    {
+        // our stockpile is now completely empty
+        gameState.stockpile.numCardsOnPile = 0;
+        gameState.stockpile.uncovered = -1;
+    }
+    else
+    {
+        if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile - 1)
+        {
+            // wraparound
+            gameState.stockpile.uncovered = 0;
+        }
+        else
+        {
+            for (int i = gameState.stockpile.uncovered + 1; i < gameState.stockpile.numCardsOnPile; ++i)
+            {
+                gameState.stockpile.pile[i - 1] = gameState.stockpile.pile[i];
+            }
+        }
+
+        --gameState.stockpile.numCardsOnPile;
+    }
+
+    // redraw the stockpile
+    const auto& spPos = gameState.stockpile.pos;
+    const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
+
+    InvalidateRect(hWnd, &stockPile, false);
+}
+
+bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
+{
+    if (pile->numCardsOnPile == 0)
+    {
+        return IsCardAdjacent(Cards::Empty, card, CardColorMatchMode::Ignore);
+    }
+
+    // cannot place on a covered pile, and must be adjacent to fit
+    return pile->uncoveredFrom < (pile->numCardsOnPile - 1) && IsCardAdjacent(pile->pile[pile->numCardsOnPile - 1], card, CardColorMatchMode::MustDiffer);
+}
+
+bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile)
+{
+    if (pile->numCardsOnPile == 0)
+    {
+        return IsCardAdjacent(card, Cards::Empty, CardColorMatchMode::Ignore);
+    }
+
+    // must be adjacent and same color to place on target
+    return IsCardAdjacent(card, pile->pile[pile->numCardsOnPile - 1], CardColorMatchMode::MustMatch);
+}
+
+bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor)
+{
+    // when a card is compared to an empty target, it must be an asslikum to fit
+    if (biggger == Cards::Empty)
+    {
+        return smaller == LaubAsslikum || smaller == PikAsslikum || smaller == HerzAsslikum || smaller == KaroAsslikum;
+    }
+
+    // towards an empty dagopile, it must be a kinigl to fit
+    if (smaller == Cards::Empty)
+    {
+        return biggger == LaubKinigl || biggger == PikKinigl || biggger == HerzKinigl || biggger == KaroKinigl;
+    }
+
+    // apply the color match rule. if this is not satisfied, no need to look further
+    const auto& colorSmaller = GetColor(smaller);
+    const auto& colorBiggger = GetColor(biggger);
+
+    if (matchColor == CardColorMatchMode::MustMatch)
+    {
+        if (colorSmaller != colorBiggger)
+        {
+            return false;
+        }
+    }
+    else if (matchColor == CardColorMatchMode::MustDiffer)
+    {
+        if (colorSmaller == colorBiggger)
+        {
+            return false;
+        }
+    }
+
+    // finally, the rank comparison
+    const auto& rankSmaller = GetRank(smaller);
+    const auto& rankBiggger = GetRank(biggger);
+
+    return rankSmaller == rankBiggger - 1;
+}
+
+bool GetColor(Cards card)
+{
+    return (card >= KaroAsslikum && card <= KaroKinigl) || (card >= HerzAsslikum && card <= HerzKinigl);
+}
+
+int GetRank(Cards card)
+{
+    if (card >= LaubAsslikum && card <= LaubKinigl)
+    {
+        return (int)card;
+    }
+
+    if (card >= KaroAsslikum && card <= KaroKinigl)
+    {
+        return (int)(card - KaroAsslikum);
+    }
+
+    if (card >= HerzAsslikum && card <= HerzKinigl)
+    {
+        return (int)(card - HerzAsslikum);
+    }
+
+    if (card >= PikAsslikum && card <= PikKinigl)
+    {
+        return (int)(card - PikAsslikum);
+    }
 }
 
 /// <summary>

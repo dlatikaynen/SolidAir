@@ -7,11 +7,12 @@
 #include <format>
 
 constexpr auto MAX_LOADSTRING = 100;
+constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
 
 // Global Variables
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+HINSTANCE hInst;                      // current instance
+WCHAR szTitle[MAX_LOADSTRING];        // The title bar text
+WCHAR szWindowClass[MAX_LOADSTRING];  // the main window class name
 
 // Forward declarations of functions included in this code module
 ATOM                RegisterWindowClass(HINSTANCE hInstance);
@@ -31,8 +32,11 @@ int dist = 0;
 GameState gameState = {};
 bool hasCapturedTheMouseToDragCards = false;
 bool CanInitiateDragHere(POINT p);
+POINT lastLeftDownAt;
+time_t lastLeftDownBy;
 POINT draggedFrom;
 POINT dragOffset;
+HCURSOR hDragCursor = 0;
 CardsBeingHit cardsBeingDragged;
 CardsBeingHit cardLastClicked;
 
@@ -219,6 +223,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle | WS_EX_COMPOSITED);
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
+    hDragCursor = LoadCursor(NULL, IDC_HAND);
 
     return TRUE;
 }
@@ -231,32 +236,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             const auto& pos = MAKEPOINTS(lParam);
             POINT pixelPos = { pos.x, pos.y };
+            
+            // remember for drag initiating detection
+            lastLeftDownAt.x = pixelPos.x;
+            lastLeftDownAt.y = pixelPos.y;
+            lastLeftDownBy = GetTickCount64();
 
-            //if (DragDetect(hWnd, pixelPos))
-            //{
-            //    if (CanInitiateDragHere(pixelPos))
-            //    {
-            //        draggedFrom.x = pixelPos.x;
-            //        draggedFrom.y = pixelPos.y;
-            //        dragOffset.x = 0;
-            //        dragOffset.y = 0;
-            //        hasCapturedTheMouseToDragCards = true;
-            //    }
-            //}
-            //else
-            {
-                HitTest(&pixelPos, &cardLastClicked);
-            }
+            HitTest(&pixelPos, &cardLastClicked);
         }
 
         break;
 
     case WM_LBUTTONUP:
         {
+            bool handled = false;
+
             if (hasCapturedTheMouseToDragCards)
             {
                 ReleaseCapture();
                 hasCapturedTheMouseToDragCards = false;
+                handled = true;
             }
             else
             {
@@ -273,6 +272,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     )
                     {
                         ClickedOnCard(hWnd);
+                        handled = true;
                     }
                 }
 
@@ -281,24 +281,96 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 cardLastClicked.pile = nullptr;
                 cardLastClicked.index = -1;
             }
+    
+            if (handled)
+            {
+                return 0;
+            }
         }
 
         break;
 
     case WM_MOUSEMOVE:
         {
-            if (lParam & MK_LBUTTON)
+            bool handled = false;
+
+            if (wParam & MK_LBUTTON)
             {
+                const auto& pos = MAKEPOINTS(lParam);
+                POINT pixelPos = { pos.x, pos.y };
+
                 if (hasCapturedTheMouseToDragCards)
                 {
-                    const auto& pos = MAKEPOINTS(lParam);
-                    POINT pixelPos = { pos.x, pos.y };
-
                     dragOffset.x = pixelPos.x - draggedFrom.x;
                     dragOffset.y = pixelPos.y - draggedFrom.y;
                     InvalidateRect(hWnd, NULL, false);
+                    handled = true;
+                }
+                else
+                {
+                    // we might be about to get enough purchase to initiate a drag
+                    int distX = pixelPos.x - lastLeftDownAt.x;
+                    int distY = pixelPos.y - lastLeftDownAt.y;
+                    bool overTreshold = false;
+                    bool didCapture = false;
+
+                    if (distX == 0 && distY == 0)
+                    {
+                        // timing-based drag treshold is only recognized as long as the mouse did not move
+                        overTreshold = (GetTickCount64() - lastLeftDownBy) >= DRAG_TRESHOLD;
+                    }
+
+                    if (!overTreshold)
+                    {
+                        SetCapture(hWnd);
+                        didCapture = true;
+
+                        if (distX != 0 || distY != 0)
+                        {
+                            int cxDrag = GetSystemMetrics(SM_CXDRAG);
+                            int cyDrag = GetSystemMetrics(SM_CYDRAG);
+                            
+                            overTreshold = abs(distX) >= cxDrag || abs(distY) >= cyDrag;
+                        }
+                    }
+
+                    if (overTreshold)
+                    {
+                        if (CanInitiateDragHere(pixelPos))
+                        {
+                            draggedFrom.x = pixelPos.x;
+                            draggedFrom.y = pixelPos.y;
+                            dragOffset.x = 0;
+                            dragOffset.y = 0;
+                            hasCapturedTheMouseToDragCards = true;
+                            SendMessage(hWnd, WM_SETCURSOR, 0, 0);
+
+                            return 0;
+                        }
+
+                        if (didCapture)
+                        {
+                            ReleaseCapture();
+                            handled = true;
+                        }
+                    }
                 }
             }
+
+            if (handled)
+            {
+                return 0;
+            }
+        }
+
+        break;
+
+    case WM_SETCURSOR:
+        if (hasCapturedTheMouseToDragCards)
+        {
+            SetCursor(hDragCursor);
+
+            return true;
         }
 
         break;
@@ -421,7 +493,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
 
-        break;
+        return true;
 
     case WM_COMMAND:
         {
@@ -431,14 +503,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
+                
+                return true;
 
             case IDM_EXIT:
                 DestroyWindow(hWnd);
-                break;
-
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+                
+                return true;
             }
         }
 
@@ -446,13 +517,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
         PostQuitMessage(0);
-        break;
-
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        
+        return 0;
     }
 
-    return 0;
+    return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 void InitNewDagobert()
@@ -608,6 +677,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
             EndDialog(hDlg, LOWORD(wParam));
+
             return (INT_PTR)TRUE;
         }
     

@@ -855,7 +855,7 @@ bool PlaceStockpileOn(HWND hWnd, int pi)
             if (gameState.stockpile.uncovered == gameState.stockpile.numCardsOnPile - 1)
             {
                 // wraparound
-                gameState.stockpile.uncovered == 0;
+                gameState.stockpile.uncovered = 0;
             }
             else
             {

@@ -205,14 +205,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance;
 
+    int width = 7 * (cdWidth + dist) + dist;
+    int hight = 4 * (cdHight + dist) + dist;
+    RECT rect = { 0, 0, width, hight };
+
+    AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, true);
     HWND hWnd = CreateWindowW(
         szWindowClass,
         szTitle,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
         CW_USEDEFAULT,
-        0,
         CW_USEDEFAULT,
-        0,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
         nullptr,
         nullptr,
         hInstance,
@@ -411,7 +416,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             // keep track of the other two modifier keys
-            if ((wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed == false)
+            if ((wParam == VK_SHIFT || wParam == VK_RSHIFT) && isShiftPressed == false)
             {
                 isShiftPressed = true;
             }
@@ -426,29 +431,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 newPi = 0;
             }
-            if (wParam == VK_NUMPAD2 || wParam == '2')
+            else if (wParam == VK_NUMPAD2 || wParam == '2')
             {
                 newPi = 1;
             }
-            if (wParam == VK_NUMPAD3 || wParam == '3')
+            else if (wParam == VK_NUMPAD3 || wParam == '3')
             {
                 newPi = 2;
             }
-            if (wParam == VK_NUMPAD4 || wParam == '4')
+            else if (wParam == VK_NUMPAD4 || wParam == '4')
             {
                 newPi = 3;
             }
-            if (wParam == VK_NUMPAD5 || wParam == '5')
+            else if (wParam == VK_NUMPAD5 || wParam == '5')
             {
                 newPi = 4;
             }
-            if (wParam == VK_NUMPAD6 || wParam == '6')
+            else if (wParam == VK_NUMPAD6 || wParam == '6')
             {
                 newPi = 5;
             }
-            if (wParam == VK_NUMPAD7 || wParam == '7')
+            else if (wParam == VK_NUMPAD7 || wParam == '7')
             {
                 newPi = 6;
+            }
+            else if (wParam == VK_NUMPAD0 || wParam == '0')
+            {
+                SetSelectedDago(hWnd, -1);
             }
 
             if (newPi != -1)
@@ -463,7 +472,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     //                the new selected source
                     if (currentDagopi == -1 || isAltPressed)
                     {
-                        currentDagopi = newPi;
+                        SetSelectedDago(hWnd, newPi);
                     }
 
                     isCtrlPressed = false;
@@ -473,7 +482,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     // <Alt> + 1..7 place the possible move from a previously selected, different dagopile,
                     //              and set the destination as the new selected source
                     PlaceStockpileOnDago(hWnd, newPi);
-                    currentDagopi = newPi;
+                    SetSelectedDago(hWnd, newPi);
                 }
                 else if (isShiftPressed && newPi <= 4)
                 {
@@ -482,10 +491,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     if (currentDagopi != -1)
                     {
                         // source is dago last one
-
-                        return 0;
+                        if (PlaceDagoOnTarget(hWnd, currentDagopi, newPi))
+                        {
+                            return 0;
+                        }
                     }
 
+                    // fallback: we also attempt this when we are on a selected pile that cannot go to target
                     PlaceStockpileOnTarget(hWnd, newPi);
                 }
                 else
@@ -495,8 +507,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     // 1..7 place the possible move from a previously selected, different dagopile there,
                     //      if the source is then empty, set the target as the new selection, otherwise
                     //      uncover, otherwise leave the selection at the source
-                    
+                    auto& dP = gameState.dagoPiles[newPi];
+                    bool mustRedraw = false;
 
+                    if (dP.uncoveredFrom >= dP.numCardsOnPile && dP.numCardsOnPile > 0)
+                    {
+                        dP.uncoveredFrom = dP.numCardsOnPile - 1;
+                        mustRedraw = true;
+                    }
+
+                    if (newPi != currentDagopi)
+                    {
+                        if (currentDagopi == -1)
+                        {
+                            SetSelectedDago(hWnd, newPi);
+                        }
+                        else
+                        {
+                            // can we move something to here?
+                            const int& grabAt = ProposeMaximumMove(currentDagopi, newPi);
+
+                            if (grabAt != -1)
+                            {
+                                if (Move(hWnd, currentDagopi, grabAt, newPi))
+                                {
+                                    mustRedraw = false;
+                                }
+                            }
+                            else
+                            {
+                                // cannot move cards. at least move selection
+                                SetSelectedDago(hWnd, newPi);
+                            }
+                        }
+                    }
+
+                    // if the addressed pile changed and we did not yet redraw, redraw now
+                    if (mustRedraw)
+                    {
+                        RedrawDagopile(hWnd, newPi, 0);
+                    }
                 }
 
                 return 0;
@@ -520,7 +570,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
 
-        if ((wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed)
+        if ((wParam == VK_SHIFT || wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed)
         {
             isShiftPressed = false;
         }
@@ -558,12 +608,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HBITMAP memBitmap = CreateCompatibleBitmap(rawDc, width, height);
             SelectObject(hdc, memBitmap);
 
+            // paint shrubbery
             const auto& bkColor = RGB(0, 0x80, 0);
             SetBkColor(hdc, bkColor);
             HBRUSH shrubbery = CreateSolidBrush(bkColor);
             HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
+
+            // draw selection indicator
+            if (currentDagopi != -1)
+            {
+                HPEN selPen = CreatePen(PS_DOT, 1, GetSysColor(COLOR_BTNSHADOW));
+                HPEN prevOutline = (HPEN)SelectObject(hdc, selPen);
+                HBRUSH prevFill = (HBRUSH)SelectObject(hdc, GetSysColorBrush(COLOR_HIGHLIGHT));
+
+                const auto& dagoPos = gameState.dagoPiles[currentDagopi].pos;
+                const auto& halfDist = dist / 2;
+                const auto& centerX = dagoPos.left + (dagoPos.right - dagoPos.left) / 2;
+                const auto& centerY = dagoPos.top - halfDist;
+                POINT vertices[] = { 
+                    {centerX - dist, centerY - 3},
+                    {centerX + dist, centerY - 3},
+                    {centerX, centerY + 3}
+                };
+            
+                Polygon(hdc, vertices, sizeof(vertices) / sizeof(vertices[0]));
+                SelectObject(hdc, prevOutline);
+                SelectObject(hdc, prevFill);
+                DeleteObject(selPen);
+            }
+
+            // prepare brush for pile borders
             HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, GetSysColorBrush(GRAY_BRUSH));
 
             for (int pi = 0; pi < 7; ++pi)
@@ -905,15 +981,28 @@ bool PlaceStockpileOnDago(HWND hWnd, int pi)
         RemoveFromStockpile(hWnd);
 
         // redraw the dago pile
-        const auto& tpPos = dP.pos;
-        const auto& dagoPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom + (dP.numCardsOnPile - 1) * dist };
-
-        InvalidateRect(hWnd, &dagoPile, false);
+        RedrawDagopile(hWnd, pi, 0);
 
         return true;
     }
 
     return false;
+}
+
+void RedrawDagopile(HWND hWnd, int pI, int removedToTakeIntoAccount)
+{
+    // redraw the dago pile
+    const auto& dP = gameState.dagoPiles[pI];
+    const auto& dpPos = dP.pos;
+    const auto& dagoPile = RECT{ 
+        dpPos.left,
+        dpPos.top,
+        dpPos.right,
+        // account for removed cards, that area needs to be redrawn as well to clear it
+        dpPos.bottom + (dP.numCardsOnPile - 1 + removedToTakeIntoAccount) * dist 
+    };
+
+    InvalidateRect(hWnd, &dagoPile, false);
 }
 
 bool PlaceStockpileOnTarget(HWND hWnd, int pi)
@@ -945,6 +1034,132 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
     }
 
     return false;
+}
+
+int ProposeMaximumMove(int fromIndex, int toIndex)
+{
+    if (fromIndex == -1 || toIndex == -1 || fromIndex == toIndex)
+    {
+        return -1;
+    }
+
+    const auto& fromPile = gameState.dagoPiles[fromIndex];
+
+    if (fromPile.numCardsOnPile == 0 || fromPile.uncoveredFrom >= fromPile.numCardsOnPile)
+    {
+        return -1;
+    }
+
+    auto& toPile = gameState.dagoPiles[toIndex];
+
+    for (int i = fromPile.uncoveredFrom; i < fromPile.numCardsOnPile; ++i)
+    {
+        const auto& card = fromPile.pile[i];
+
+        if (CanPlaceCardOnDagoPile(card, &toPile))
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+bool Move(HWND hWnd, int srcIndex, int grabAt, int dstIndex)
+{
+    if (srcIndex == -1 || dstIndex == -1 || srcIndex == dstIndex)
+    {
+        return false;
+    }
+
+    auto& srcPile = gameState.dagoPiles[srcIndex];
+    auto& dstPile = gameState.dagoPiles[dstIndex];
+
+    int cardsMoved = 0;
+
+    for (int i = grabAt; i < srcPile.numCardsOnPile; ++i)
+    {
+        const auto& card = srcPile.pile[i];
+
+        gameState.dagoPiles[dstIndex].pile[gameState.dagoPiles[dstIndex].numCardsOnPile] = card;
+        ++gameState.dagoPiles[dstIndex].numCardsOnPile;
+        ++cardsMoved;
+    }
+
+    if (cardsMoved != 0)
+    {
+        gameState.dagoPiles[srcIndex].numCardsOnPile -= cardsMoved;
+
+        // refresh both piles
+        RedrawDagopile(hWnd, srcIndex, cardsMoved);
+        RedrawDagopile(hWnd, dstIndex, 0);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
+{
+    if (di == -1 || ti < 0 || ti > 3)
+    {
+        return false;
+    }
+
+    auto& source = gameState.dagoPiles[di];
+
+    if (source.numCardsOnPile == 0)
+    {
+        return false;
+    }
+
+    auto& card = source.pile[source.numCardsOnPile - 1];
+
+    // now, can it be placed there?
+    auto& tP = gameState.targetPiles[ti];
+    if (!CanPlaceCardOnTargetPile(card, &tP))
+    {
+        return false;
+    }
+
+    // add it to the target pile
+    tP.pile[tP.numCardsOnPile] = card;
+    tP.numCardsOnPile++;
+
+    RemoveFromDagopile(hWnd, di);
+
+    // redraw the target pile
+    const auto& tpPos = tP.pos;
+    const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom };
+
+    InvalidateRect(hWnd, &targetPile, false);
+
+    return true;
+}
+
+void SetSelectedDago(HWND hWnd, int dpIndex)
+{
+    if (currentDagopi != dpIndex)
+    {
+        // clear if none is selected any more, otherwise draw on newly selected pile
+        if (currentDagopi != -1)
+        {
+            auto& prevP = gameState.dagoPiles[currentDagopi];
+            const auto& prevPos = prevP.pos;
+            const auto& prevIndicator = RECT{ prevPos.left, prevPos.top - dist + 1, prevPos.right, prevPos.top - 1 };
+
+            InvalidateRect(hWnd, &prevIndicator, false);
+        }
+
+        currentDagopi = dpIndex;
+
+        auto& selP = gameState.dagoPiles[currentDagopi];
+        const auto& selPos = selP.pos;
+        const auto& selIndicator = RECT{ selPos.left, selPos.top - dist + 1, selPos.right, selPos.top - 1 };
+
+        InvalidateRect(hWnd, &selIndicator, false);
+    }
 }
 
 void RemoveFromStockpile(HWND hWnd)
@@ -981,6 +1196,20 @@ void RemoveFromStockpile(HWND hWnd)
     InvalidateRect(hWnd, &stockPile, false);
 }
 
+bool RemoveFromDagopile(HWND hWnd, int di)
+{
+    if (di == -1 || gameState.dagoPiles[di].numCardsOnPile == 0)
+    {
+        return false;
+    }
+
+    // remove it from the dagopile
+    --gameState.dagoPiles[di].numCardsOnPile;
+
+    // redraw the dagopile
+    RedrawDagopile(hWnd, di, 1);
+}
+
 bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
 {
     if (pile->numCardsOnPile == 0)
@@ -989,7 +1218,7 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
     }
 
     // cannot place on a covered pile, and must be adjacent to fit
-    return pile->uncoveredFrom < (pile->numCardsOnPile - 1) && IsCardAdjacent(pile->pile[pile->numCardsOnPile - 1], card, CardColorMatchMode::MustDiffer);
+    return pile->uncoveredFrom < pile->numCardsOnPile && IsCardAdjacent(card, pile->pile[pile->numCardsOnPile - 1], CardColorMatchMode::MustDiffer);
 }
 
 bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile)
@@ -1000,7 +1229,7 @@ bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile)
     }
 
     // must be adjacent and same color to place on target
-    return IsCardAdjacent(card, pile->pile[pile->numCardsOnPile - 1], CardColorMatchMode::MustMatch);
+    return IsCardAdjacent(pile->pile[pile->numCardsOnPile - 1], card, CardColorMatchMode::MustMatch);
 }
 
 bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor)

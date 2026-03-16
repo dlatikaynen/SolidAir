@@ -119,8 +119,6 @@ int APIENTRY wWinMain(
     cardsBeingDragged.pile = nullptr;
     cardsBeingDragged.index = -1;
 
-    gameState.stockpile.numCardsOnPile = 0;
-    gameState.stockpile.uncovered = -1;
     gameState.stockpile.pos.left = dist;
     gameState.stockpile.pos.top = dist;
     gameState.stockpile.pos.right = dist + cdWidth;
@@ -130,21 +128,19 @@ int APIENTRY wWinMain(
     {
         if (pi < 4)
         {
-            gameState.targetPiles[pi].numCardsOnPile = 0;
             gameState.targetPiles[pi].pos.left = dist + (pi + 3) * (dist + cdWidth);
             gameState.targetPiles[pi].pos.top = dist;
             gameState.targetPiles[pi].pos.right = dist + (pi + 3) * (dist + cdWidth) + cdWidth;
             gameState.targetPiles[pi].pos.bottom = dist + cdHight;
         }
 
-        gameState.dagoPiles[pi].numCardsOnPile = 0;
         gameState.dagoPiles[pi].pos.left = dist + pi * (dist + cdWidth);
         gameState.dagoPiles[pi].pos.top = dist + cdHight + dist;
         gameState.dagoPiles[pi].pos.right = dist + pi * (dist + cdWidth) + cdWidth;
         gameState.dagoPiles[pi].pos.bottom = dist + cdHight + dist + cdHight;
     }
 
-    InitNewDagobert();
+    NewGame(nullptr);
 
     // application window initialization
     if (!InitInstance (hInstance, nCmdShow))
@@ -619,7 +615,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // draw selection indicator
             if (currentDagopi != -1)
             {
-                HPEN selPen = CreatePen(PS_DOT, 1, GetSysColor(COLOR_BTNSHADOW));
+                HPEN selPen = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNSHADOW));
                 HPEN prevOutline = (HPEN)SelectObject(hdc, selPen);
                 HBRUSH prevFill = (HBRUSH)SelectObject(hdc, GetSysColorBrush(COLOR_HIGHLIGHT));
 
@@ -712,6 +708,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // the stockpile - last so it is on top of everything else
             if (gameState.stockpile.uncovered == -1)
             {
+                // the empty stack is rendered as a card back because
+                // that's the joker hiding under there
                 cdtDraw(hdc, dist, dist, gameState.background, 1, 0);
             }
             else
@@ -726,13 +724,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     {
                         if (gameState.stockpile.numCardsOnPile == 1)
                         {
-                            Rectangle(
-                                hdc,
-                                gameState.stockpile.pos.left,
-                                gameState.stockpile.pos.top,
-                                gameState.stockpile.pos.right,
-                                gameState.stockpile.pos.bottom
-                            );
+                            // the empty stack is rendered as a card back because
+                            // that's the joker hiding there at the bottom
+                            cdtDraw(hdc, dist, dist, gameState.background, 1, 0);
                         }
                         else if (gameState.stockpile.numCardsOnPile > 1)
                         {
@@ -774,6 +768,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             switch (wmId)
             {
+            case ID_GAME_NEW:
+                NewGame(hWnd);
+
+                return true;
+
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 
@@ -795,6 +794,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void NewGame(HWND hWnd)
+{
+    gameState.stockpile.numCardsOnPile = 0;
+    gameState.stockpile.uncovered = -1;
+
+    for (int i = 0; i < 7; ++i)
+    {
+        if (i < 4)
+        {
+            gameState.targetPiles[i].numCardsOnPile = 0;
+        }
+
+        gameState.dagoPiles[i].numCardsOnPile = 0;
+        gameState.dagoPiles[i].uncoveredFrom = -1;
+    }
+
+    InitNewDagobert();
+
+    if (hWnd != nullptr)
+    {
+        InvalidateRect(hWnd, NULL, false);
+    }
 }
 
 void InitNewDagobert()
@@ -1218,18 +1241,23 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
     }
 
     // cannot place on a covered pile, and must be adjacent to fit
-    return pile->uncoveredFrom < pile->numCardsOnPile && IsCardAdjacent(card, pile->pile[pile->numCardsOnPile - 1], CardColorMatchMode::MustDiffer);
+    return pile->uncoveredFrom < pile->numCardsOnPile && IsCardAdjacent(
+        card,
+        pile->pile[pile->numCardsOnPile - 1],
+        CardColorMatchMode::MustDifferInColor
+    );
 }
 
 bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile)
 {
     if (pile->numCardsOnPile == 0)
     {
+        // can place any ace on an empty target, but nothing else than an ace
         return IsCardAdjacent(card, Cards::Empty, CardColorMatchMode::Ignore);
     }
 
-    // must be adjacent and same color to place on target
-    return IsCardAdjacent(pile->pile[pile->numCardsOnPile - 1], card, CardColorMatchMode::MustMatch);
+    // must be adjacent and same suite to place on target
+    return IsCardAdjacent(pile->pile[pile->numCardsOnPile - 1], card, CardColorMatchMode::MustMatchSuite);
 }
 
 bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor)
@@ -1247,19 +1275,16 @@ bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor)
     }
 
     // apply the color match rule. if this is not satisfied, no need to look further
-    const auto& colorSmaller = GetColor(smaller);
-    const auto& colorBiggger = GetColor(biggger);
-
-    if (matchColor == CardColorMatchMode::MustMatch)
+    if (matchColor == CardColorMatchMode::MustDifferInColor)
     {
-        if (colorSmaller != colorBiggger)
+        if (GetColor(smaller) == GetColor(biggger))
         {
             return false;
         }
     }
-    else if (matchColor == CardColorMatchMode::MustDiffer)
+    else if (matchColor == CardColorMatchMode::MustMatchSuite)
     {
-        if (colorSmaller == colorBiggger)
+        if (GetSuite(smaller) != GetSuite(biggger))
         {
             return false;
         }
@@ -1275,6 +1300,28 @@ bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor)
 bool GetColor(Cards card)
 {
     return (card >= KaroAsslikum && card <= KaroKinigl) || (card >= HerzAsslikum && card <= HerzKinigl);
+}
+
+Suite GetSuite(Cards card)
+{
+    if (card >= LaubAsslikum && card <= LaubKinigl)
+    {
+        return Suite::Laub;
+    }
+    else if (card >= KaroAsslikum && card <= KaroKinigl)
+    {
+        return Suite::Karo;
+    }
+    else if (card >= HerzAsslikum && card <= HerzKinigl)
+    {
+        return Suite::Herz;
+    }
+    else if (card >= PikAsslikum && card <= PikKinigl)
+    {
+        return Suite::Pik;
+    }
+
+    return Suite::None;
 }
 
 int GetRank(Cards card)

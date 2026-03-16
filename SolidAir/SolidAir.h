@@ -7,6 +7,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance);
 BOOL InitInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
+void NewGame(HWND hWnd);
 void InitNewDagobert();
 bool HitTest(POINT *p, CardsBeingHit* cards);
 void ClickedOnCard(HWND hWnd);
@@ -25,6 +26,7 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile);
 bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile);
 bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor);
 bool GetColor(Cards card);
+Suite GetSuite(Cards card);
 int GetRank(Cards card);
 
 typedef BOOL(WINAPI* pfcdtInit)(int*, int*);

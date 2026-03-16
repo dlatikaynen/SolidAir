@@ -1,6 +1,14 @@
 #pragma once
 
 typedef enum {
+	None = -1,
+	Laub = 0,
+	Karo = 1,
+	Herz = 2,
+	Pik = 3
+} Suite;
+
+typedef enum {
 	Empty = -1,
 
 	// ♣
@@ -84,8 +92,8 @@ typedef enum {
 
 typedef enum {
 	Ignore,
-	MustMatch,
-	MustDiffer
+	MustDifferInColor,
+	MustMatchSuite
 } CardColorMatchMode;
 
 typedef struct {

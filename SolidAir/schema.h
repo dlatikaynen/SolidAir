@@ -124,7 +124,7 @@ typedef struct {
 
 typedef struct {
 	int numCardsOnPile;
-	Cards pile[52];
+	Cards pile[52 - 1 - 2 - 3 - 4 - 5 - 6 - 7];
 	CardRect pos;
 	int uncovered; // -1 means not uncovered
 } StockPile;
@@ -138,12 +138,12 @@ typedef struct {
 typedef struct {
 	int numCardsOnPile;
 	int uncoveredFrom; // index
-	Cards pile[100];
+	Cards pile[20];    // 13 + 7 (a full set plus the maximum that can be covered
 	CardRect pos;
 } DagoPile;
 
 typedef struct {
-	COLORREF bkgColor;
+	BackgroundColors backgroundColor;
 	Cards backside;
 	StockPile stockpile;
 	TargetPile targetPiles[4];
@@ -168,7 +168,8 @@ typedef struct SettingsStruct
 	char Preamble6 = 'M';
 	char Preamble7 = 'L';
 	char Preamble8 = '\5';
-	char Preamble9 = '\6'; // bloodot has 0 here
+	char Preamble9 = '\6'; // bloodot has 0 here, solidair savegames have 7 here
+	char version = '1';    // if savegame file format and settings version evolve independently, this will have to be overwritten
 	BackgroundColors backgroundColor;
 	Cards cardBackside;
 	FrontendLanguage language;
@@ -176,3 +177,4 @@ typedef struct SettingsStruct
 	bool musicOn;
 	bool commentaryOn;
 } SettingsStruct;
+#pragma pack()

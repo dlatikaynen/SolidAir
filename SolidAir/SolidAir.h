@@ -18,6 +18,8 @@ void UpdateTitle(HWND hWnd);
 void NewGame(HWND hWnd);
 void LoadGame(HWND hWnd);
 void SaveGame(HWND hWnd, bool saveAs);
+void LoadGamestateFromFile(HWND hWnd, LPWSTR filename);
+void SaveGamestateToFile(HWND hWnd, LPWSTR filename);
 void SetDirty(HWND hWnd);
 void ResetDirty(HWND hWnd);
 void InitNewDagobert();

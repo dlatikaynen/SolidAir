@@ -9,6 +9,7 @@
 #include <format>
 #include <windows.h>
 #include <Lmcons.h>
+#include <commdlg.h>
 #include <Security.h>
 #pragma comment (lib,"Secur32.lib")
 
@@ -30,7 +31,7 @@ int cdHight;
 int dist = 0;
 
 // settings and savegame
-wchar_t* lastSavedAsFilename = nullptr;
+wchar_t lastSavedAsFilename[MAX_PATH] = { 0 };
 bool dirty = false;
 BackgroundColors backgroundColor = BackgroundColors::Default;
 Cards cardBackside = Cards::Empty;
@@ -646,8 +647,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SelectObject(hdc, memBitmap);
 
             // paint shrubbery
-            SetBkColor(hdc, gameState.bkgColor);
-            HBRUSH shrubbery = CreateSolidBrush(gameState.bkgColor);
+            COLORREF bkgColor = 0;
+            switch (gameState.backgroundColor)
+            {
+            case BackgroundColors::Green:
+                bkgColor = RGB(0, 0x80, 0);
+                break;
+
+            case BackgroundColors::Black:
+                bkgColor = RGB(3, 3, 3);
+                break;
+
+            case BackgroundColors::DarkBlue:
+                bkgColor = RGB(1, 1, 0x80);
+                break;
+
+            case BackgroundColors::DarkGray:
+                bkgColor = RGB(0x69, 0x69, 0x69);
+                break;
+
+            case BackgroundColors::Pink:
+                bkgColor = RGB(0xff, 0x79, 0x79);
+                break;
+            }
+
+            SetBkColor(hdc, bkgColor);
+            HBRUSH shrubbery = CreateSolidBrush(bkgColor);
             HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
@@ -813,6 +838,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 NewGame(hWnd);
 
                 return true;
+
+            case ID_GAME_LOAD:
+                LoadGame(hWnd);
+                break;
+
+            case ID_GAME_SAVE:
+                SaveGame(hWnd, false);
+                break;
+
+            case ID_GAME_SAVEAS:
+                SaveGame(hWnd, true);
+                break;
 
             case ID_CARDBACK_BLUEDOT:
                 if (cardBackside != Cards::BackBloodot)
@@ -1052,6 +1089,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 
                 return true;
 
+            case ID_GAME_EXIT:
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 
@@ -1062,9 +1100,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_DESTROY:
-        PostQuitMessage(0);
         SaveSettings();
-        
+        PostQuitMessage(0);
+
         return 0;
     }
 
@@ -1170,6 +1208,10 @@ void LoadSettings(HWND hWnd)
                 {
                     std::cerr << "This is a blooDot settings file, it does not work with this game. Ignored";
                 }
+                if (settings.Preamble9 == '\7')
+                {
+                    std::cerr << "This is a savegame, not a settings file. Ignored";
+                }
                 else
                 {
                     std::cerr << "This is a settings file from a different game, it does not work with this game. Ignored";
@@ -1240,33 +1282,11 @@ void SaveSettings()
 
 void NewGame(HWND hWnd)
 {
+    lastSavedAsFilename[0] = 0;
     gameState.backside = cardBackside;
+    gameState.backgroundColor = backgroundColor;
     gameState.stockpile.numCardsOnPile = 0;
     gameState.stockpile.uncovered = -1;
-
-    COLORREF bkColor = 0;
-    switch (backgroundColor)
-    {
-    case BackgroundColors::Green:
-        gameState.bkgColor = RGB(0, 0x80, 0);
-        break;
-
-    case BackgroundColors::Black:
-        gameState.bkgColor = RGB(3, 3, 3);
-        break;
-
-    case BackgroundColors::DarkBlue:
-        gameState.bkgColor = RGB(1, 1, 0x80);
-        break;
-
-    case BackgroundColors::DarkGray:
-        gameState.bkgColor = RGB(0x69, 0x69, 0x69);
-        break;
-
-    case BackgroundColors::Pink:
-        gameState.bkgColor = RGB(0xff, 0x79, 0x79);
-        break;
-    }
 
     for (int i = 0; i < 7; ++i)
     {
@@ -1291,11 +1311,175 @@ void NewGame(HWND hWnd)
 
 void LoadGame(HWND hWnd)
 {
-    ResetDirty(hWnd);
+    wchar_t szFile[MAX_PATH] = { 0 };
+    OPENFILENAME dialogInfo = {};
+    ZeroMemory(&dialogInfo, sizeof(OPENFILENAME));
+    dialogInfo.lStructSize = sizeof(OPENFILENAME);
+    dialogInfo.hwndOwner = hWnd;
+    dialogInfo.lpstrFilter = L"Solidair saves (*.solidair)\0*.solidair\0";
+    dialogInfo.lpstrDefExt = L".solidair";
+    dialogInfo.Flags = OFN_HIDEREADONLY | OFN_EXPLORER;
+    dialogInfo.lpstrFile = szFile;
+    dialogInfo.nMaxFile = MAX_PATH;
+    dialogInfo.lpstrTitle = L"Load game";
+
+    if (GetOpenFileName(&dialogInfo))
+    {
+        LoadGamestateFromFile(hWnd, dialogInfo.lpstrFile);
+        InvalidateRect(hWnd, NULL, false);
+    }
 }
 
 void SaveGame(HWND hWnd, bool saveAs)
 {
+    wchar_t szFile[MAX_PATH] = { 0 };
+    OPENFILENAME dialogInfo = {};
+    ZeroMemory(&dialogInfo, sizeof(OPENFILENAME));
+    dialogInfo.lStructSize = sizeof(OPENFILENAME);
+    dialogInfo.hwndOwner = hWnd;
+    dialogInfo.lpstrFilter = L"Solidair saves (*.solidair)\0*.solidair\0";
+    dialogInfo.lpstrDefExt = L".solidair";
+    dialogInfo.Flags = OFN_HIDEREADONLY | OFN_EXPLORER | OFN_OVERWRITEPROMPT;
+    dialogInfo.lpstrFile = szFile;
+    dialogInfo.nMaxFile = MAX_PATH;
+
+    if (saveAs)
+    {
+        dialogInfo.lpstrTitle = L"Save game as";
+        if (GetSaveFileName(&dialogInfo))
+        {
+            SaveGamestateToFile(hWnd, dialogInfo.lpstrFile);
+            wcsncpy_s(lastSavedAsFilename, dialogInfo.lpstrFile, MAX_PATH);
+        }
+    }
+    else if (lastSavedAsFilename[0] == 0)
+    {
+        dialogInfo.lpstrTitle = L"Save game";
+        if (GetSaveFileName(&dialogInfo))
+        {
+            SaveGamestateToFile(hWnd, dialogInfo.lpstrFile);
+            wcsncpy_s(lastSavedAsFilename, dialogInfo.lpstrFile, MAX_PATH);
+        }
+    }
+    else if (!dirty)
+    {
+        // nothing new to save
+        return;
+    }
+
+    // repeated save, overwrite / append
+    SaveGamestateToFile(hWnd, lastSavedAsFilename);
+}
+
+void LoadGamestateFromFile(HWND hWnd, LPWSTR filename)
+{
+    SettingsStruct checksig = {};
+    SettingsStruct settings = {};
+    bool canCue = false;
+
+    std::fstream in(filename, std::ios::in | std::ios::binary);
+    if (in)
+    {
+        in.read((char*)&settings, sizeof(settings));
+
+        if (
+            settings.Preamble0 == checksig.Preamble0
+            && settings.Preamble1 == checksig.Preamble1
+            && settings.Preamble2 == checksig.Preamble2
+            && settings.Preamble3 == checksig.Preamble3
+            && settings.Preamble4 == checksig.Preamble4
+            && settings.Preamble5 == checksig.Preamble5
+            && settings.Preamble6 == checksig.Preamble6
+            && settings.Preamble7 == checksig.Preamble7
+            && settings.Preamble8 == checksig.Preamble8
+            ) {
+            if (settings.Preamble9 != '\7')
+            {
+                if (settings.Preamble9 == '\0')
+                {
+                    MessageBox(hWnd, L"This is a blooDot file, it does not work with this game", L"Open savegame", 0);
+                }
+                if (settings.Preamble9 == '\6')
+                {
+                    MessageBox(hWnd, L"This is a settings file, not a savegame", L"Open savegame", 0);
+                }
+                else
+                {
+                    MessageBox(hWnd, L"This is a file from a different game, it does not work with this game", L"Open savegame", 0);
+                }
+            }
+            else
+            {
+                canCue = true;
+            }
+        }
+        else
+        {
+            MessageBox(hWnd, L"The file could not be recognized as a Solidair savegame", L"Open savegame", 0);
+        }
+
+        // now load the actual gamestate (piles)
+        if (canCue)
+        {
+            gameState.backgroundColor = settings.backgroundColor;
+            gameState.backside = settings.cardBackside;
+
+            in.read((char*)&gameState.stockpile, sizeof(StockPile));
+            for (int i = 0; i < 7; ++i)
+            {
+                if (i <= 3)
+                {
+                    in.read((char*)&gameState.targetPiles[i], sizeof(TargetPile));
+                }
+
+                in.read((char*)&gameState.dagoPiles[i], sizeof(DagoPile));
+            }
+        }
+
+        in.close();
+    }
+    else
+    {
+        MessageBox(hWnd, L"The file could not be opened for reading", L"Open savegame", 0);
+    }
+
+    // loading means that we can save over this file
+    // as soon as we make any additional move
+    wcsncpy_s(lastSavedAsFilename, filename, MAX_PATH);
+    ResetDirty(hWnd);
+}
+
+void SaveGamestateToFile(HWND hWnd, LPWSTR filename)
+{
+    // first part is the settings with the game-specific ones overridden
+    SettingsStruct settings;
+
+    settings.Preamble9 = '\7'; // 6..solidair settings, 7..solidair savegame
+    settings.backgroundColor = gameState.backgroundColor;
+    settings.cardBackside = gameState.backside;
+    settings.language = language;         // not restored on load
+    settings.musicOn = musicOn;           // not restored on load
+    settings.sfxOn = soundFxOn;           // not restored on load
+    settings.commentaryOn = commentaryOn; // not restored on load
+
+    std::fstream out(filename, std::ios::out | std::ios::trunc | std::ios::binary);
+    out.write((char*)&settings, sizeof(settings));
+    out.write((char*)&gameState.stockpile, sizeof(StockPile));
+    for (int i = 0; i < 7; ++i)
+    {
+        // that's why they're interleaved so strangely in the file
+        if (i <= 3)
+        {
+            out.write((char*)&gameState.targetPiles[i], sizeof(TargetPile));
+        }
+
+        out.write((char*)&gameState.dagoPiles[i], sizeof(DagoPile));
+    }
+
+    out.close();
+
+    // saving once means that we can save again after something changed
+    // without being prompted for a filename
     ResetDirty(hWnd);
 }
 
@@ -1614,7 +1798,8 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
         const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom };
 
         InvalidateRect(hWnd, &targetPile, false);
-
+        SetDirty(hWnd);
+        
         return true;
     }
 
@@ -1678,6 +1863,7 @@ bool Move(HWND hWnd, int srcIndex, int grabAt, int dstIndex)
         // refresh both piles
         RedrawDagopile(hWnd, srcIndex, cardsMoved);
         RedrawDagopile(hWnd, dstIndex, 0);
+        SetDirty(hWnd);
 
         return true;
     }
@@ -1719,6 +1905,7 @@ bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
     const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom };
 
     InvalidateRect(hWnd, &targetPile, false);
+    SetDirty(hWnd);
 
     return true;
 }
@@ -1749,6 +1936,11 @@ void SetSelectedDago(HWND hWnd, int dpIndex)
 
 void RemoveFromStockpile(HWND hWnd)
 {
+    if (gameState.stockpile.numCardsOnPile == 0)
+    {
+        return;
+    }
+
     // remove it from the stockpile
     if (gameState.stockpile.numCardsOnPile == 1)
     {
@@ -1779,6 +1971,7 @@ void RemoveFromStockpile(HWND hWnd)
     const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
 
     InvalidateRect(hWnd, &stockPile, false);
+    SetDirty(hWnd);
 }
 
 bool RemoveFromDagopile(HWND hWnd, int di)
@@ -1793,6 +1986,7 @@ bool RemoveFromDagopile(HWND hWnd, int di)
 
     // redraw the dagopile
     RedrawDagopile(hWnd, di, 1);
+    SetDirty(hWnd);
 
     return true;
 }

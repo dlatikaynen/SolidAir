@@ -2,6 +2,7 @@
 #include "framework.h"
 #include "SolidAir.h"
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <ranges>
 #include <random>
@@ -27,6 +28,16 @@ pfcdtTerm cdtTerm;
 int cdWidth;
 int cdHight;
 int dist = 0;
+
+// settings and savegame
+wchar_t* lastSavedAsFilename = nullptr;
+bool dirty = false;
+BackgroundColors backgroundColor = BackgroundColors::Default;
+Cards cardBackside = Cards::Empty;
+FrontendLanguage language = FrontendLanguage::unknown;
+bool soundFxOn = false;
+bool musicOn = false;
+bool commentaryOn = false;
 GameState gameState = {};
 
 // mouse operation
@@ -114,7 +125,6 @@ int APIENTRY wWinMain(
 
     // initialize the game state
     dist = 100 - cdWidth;
-    gameState.background = Cards::BackBloodot;
     cardsBeingDragged.fromStockpile = false;
     cardsBeingDragged.pile = nullptr;
     cardsBeingDragged.index = -1;
@@ -140,15 +150,17 @@ int APIENTRY wWinMain(
         gameState.dagoPiles[pi].pos.bottom = dist + cdHight + dist + cdHight;
     }
 
-    NewGame(nullptr);
-
     // application window initialization
-    if (!InitInstance (hInstance, nCmdShow))
+    HWND hWnd;
+
+    if (!InitInstance (hInstance, nCmdShow, &hWnd))
     {
         std::cerr << "Failed to initialize instance";
 
         return FALSE;
     }
+
+    NewGame(hWnd);
 
     // ancient main message loop
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SOLIDAIR));
@@ -197,7 +209,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND *createdHwnd)
 {
     hInst = hInstance;
 
@@ -227,18 +239,47 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return false;
     }
 
+    // on a first start, sense language from environment
+    if (language == FrontendLanguage::unknown)
+    {
+        WCHAR lcid[MAX_LOADSTRING] = {};
+        LoadStringW(hInstance, IDS_LCID, lcid, MAX_LOADSTRING);
+
+        if (wcsncmp(lcid, L"de", MAX_LOADSTRING) == 0)
+        {
+            SetLanguage(hWnd, FrontendLanguage::de);
+        }
+        else if (wcsncmp(lcid, L"fi", MAX_LOADSTRING) == 0)
+        {
+            SetLanguage(hWnd, FrontendLanguage::fi);
+        }
+        else if (wcsncmp(lcid, L"ua", MAX_LOADSTRING) == 0)
+        {
+            SetLanguage(hWnd, FrontendLanguage::ua);
+        }
+        else 
+        {
+            SetLanguage(hWnd, FrontendLanguage::en);
+        }
+    }
+
+    LoadSettings(hWnd);
+
     LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+
     SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle | WS_EX_COMPOSITED);
     ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
     hDragCursor = LoadCursor(NULL, IDC_HAND);
 
     wchar_t username[UNLEN + 1];
     DWORD username_len = UNLEN + 1;
+
     if (GetUserNameEx(EXTENDED_NAME_FORMAT::NameDisplay, username, &username_len) == 0)
     {
         username[0] = 0;
     }
+
+    *createdHwnd = hWnd;
 
     return true;
 }
@@ -605,9 +646,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SelectObject(hdc, memBitmap);
 
             // paint shrubbery
-            const auto& bkColor = RGB(0, 0x80, 0);
-            SetBkColor(hdc, bkColor);
-            HBRUSH shrubbery = CreateSolidBrush(bkColor);
+            SetBkColor(hdc, gameState.bkgColor);
+            HBRUSH shrubbery = CreateSolidBrush(gameState.bkgColor);
             HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
@@ -697,7 +737,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             hdc,
                             dpos.left,
                             dpos.top + i * dist,
-                            i < dpile.uncoveredFrom ? gameState.background : dpileCard,
+                            i < dpile.uncoveredFrom ? gameState.backside : dpileCard,
                             0,
                             0
                         );
@@ -710,7 +750,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 // the empty stack is rendered as a card back because
                 // that's the joker hiding under there
-                cdtDraw(hdc, dist, dist, gameState.background, 1, 0);
+                cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
             }
             else
             {
@@ -726,7 +766,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         {
                             // the empty stack is rendered as a card back because
                             // that's the joker hiding there at the bottom
-                            cdtDraw(hdc, dist, dist, gameState.background, 1, 0);
+                            cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
                         }
                         else if (gameState.stockpile.numCardsOnPile > 1)
                         {
@@ -761,10 +801,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         return true;
-
+    
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
+            const auto& hMenu = GetMenu(hWnd);
 
             switch (wmId)
             {
@@ -772,6 +813,239 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 NewGame(hWnd);
 
                 return true;
+
+            case ID_CARDBACK_BLUEDOT:
+                if (cardBackside != Cards::BackBloodot)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackBloodot;
+                }
+
+                break;
+
+            case ID_CARDBACK_COLORFUL:
+                if (cardBackside != Cards::BackColorful)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackColorful;
+                }
+
+                break;
+
+            case ID_CARDBACK_CUBERT:
+                if (cardBackside != Cards::BackCubert)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackCubert;
+                }
+
+                break;
+
+            case ID_CARDBACK_DIVINE:
+                if (cardBackside != Cards::BackDivine)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackDivine;
+                }
+
+                break;
+
+            case ID_CARDBACK_FELINE:
+                if (cardBackside != Cards::BackCat)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackCat;
+                }
+
+                break;
+
+            case ID_CARDBACK_ICE:
+                if (cardBackside != Cards::BackIce)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackIce;
+                }
+
+                break;
+
+            case ID_CARDBACK_MAPLE:
+                if (cardBackside != Cards::BackMaple)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackMaple;
+                }
+
+                break;
+
+            case ID_CARDBACK_PAPER:
+                if (cardBackside != Cards::BackPaper)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackPaper;
+                }
+
+                break;
+
+            case ID_CARDBACK_PARKETT:
+                if (cardBackside != Cards::BackParkett)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackParkett;
+                }
+
+                break;
+
+            case ID_CARDBACK_PINE:
+                if (cardBackside != Cards::BackPine)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackPine;
+                }
+
+                break;
+
+            case ID_CARDBACK_RED:
+                if (cardBackside != Cards::BackRed)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackRed;
+                }
+
+                break;
+
+            case ID_CARDBACK_ROCKS:
+                if (cardBackside != Cards::BackRocks)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackRocks;
+                }
+
+                break;
+
+            case ID_CARDBACK_SAFETY:
+                if (cardBackside != Cards::BackSafety)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackSafety;
+                }
+
+                break;
+
+            case ID_CARDBACK_SKY:
+                if (cardBackside != Cards::BackSky)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackSky;
+                }
+
+                break;
+
+            case ID_CARDBACK_SPACE:
+                if (cardBackside != Cards::BackSpace)
+                {
+                    UncheckAllBackgroundMenuItems(hMenu, wmId);
+                    cardBackside = Cards::BackSpace;
+                }
+
+                break;
+                
+            // radiogroup background (table) colors
+            case ID_BACKGROUNDCOLOR_GREEN:
+                if (backgroundColor != BackgroundColors::Green)
+                {
+                    UncheckAllBkgColorMenuItems(hMenu, wmId);
+                    backgroundColor = BackgroundColors::Green;
+                }
+
+                break;
+
+            case ID_BACKGROUNDCOLOR_BLACK:
+                if (backgroundColor != BackgroundColors::Black)
+                {
+                    UncheckAllBkgColorMenuItems(hMenu, wmId);
+                    backgroundColor = BackgroundColors::Black;
+                }
+
+                break;
+
+            case ID_BACKGROUNDCOLOR_DARKBLUE:
+                if (backgroundColor != BackgroundColors::DarkBlue)
+                {
+                    UncheckAllBkgColorMenuItems(hMenu, wmId);
+                    backgroundColor = BackgroundColors::DarkBlue;
+                }
+
+                break;
+
+            case ID_BACKGROUNDCOLOR_DARKGRAY:
+                if (backgroundColor != BackgroundColors::DarkGray)
+                {
+                    UncheckAllBkgColorMenuItems(hMenu, wmId);
+                    backgroundColor = BackgroundColors::DarkGray;
+                }
+
+                break;
+
+            case ID_BACKGROUNDCOLOR_PINK:
+                if (backgroundColor != BackgroundColors::Pink)
+                {
+                    UncheckAllBkgColorMenuItems(hMenu, wmId);
+                    backgroundColor = BackgroundColors::Pink;
+                }
+
+                break;
+
+            // radiogroup language
+            case ID_LANGUAGE_DEUTSCH:
+                if (language != FrontendLanguage::de)
+                {
+                    SetLanguage(hWnd, FrontendLanguage::de);
+                }
+
+                break;
+
+            case ID_LANGUAGE_ENGLISH:
+                if (language != FrontendLanguage::en)
+                {
+                    SetLanguage(hWnd, FrontendLanguage::en);
+                }
+
+                break;
+
+            case ID_LANGUAGE_SUOMI:
+                if (language != FrontendLanguage::fi)
+                {
+                    SetLanguage(hWnd, FrontendLanguage::fi);
+                }
+
+                break;
+
+            case ID_LANGUAGE_UKRAINSKA:
+                if (language != FrontendLanguage::ua)
+                {
+                    SetLanguage(hWnd, FrontendLanguage::ua);
+                }
+
+                break;
+
+            // boolean toggles
+            case ID_SETTINGS_BACKGROUNDMUSIC:
+                musicOn = !musicOn;
+                CheckMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, musicOn ? MF_CHECKED : MF_UNCHECKED);
+
+                break;
+
+            case ID_SETTINGS_SOUNDFX:
+                soundFxOn = !soundFxOn;
+                CheckMenuItem(hMenu, ID_SETTINGS_SOUNDFX, soundFxOn ? MF_CHECKED : MF_UNCHECKED);
+
+                break;
+
+            case ID_SETTINGS_COMMENTARY:
+                commentaryOn = !commentaryOn;
+                CheckMenuItem(hMenu, ID_SETTINGS_COMMENTARY, commentaryOn ? MF_CHECKED : MF_UNCHECKED);
+
+                break;
 
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -789,6 +1063,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
         PostQuitMessage(0);
+        SaveSettings();
         
         return 0;
     }
@@ -796,10 +1071,202 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+void UncheckAllBackgroundMenuItems(HMENU hMenu, int check)
+{
+    CheckMenuItem(hMenu, ID_CARDBACK_BLUEDOT, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_COLORFUL, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_CUBERT, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_DIVINE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_FELINE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_ICE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_MAPLE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_PAPER, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_PARKETT, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_PINE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_RED, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_ROCKS, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_SAFETY, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_SKY, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_CARDBACK_SPACE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, check, MF_CHECKED);
+}
+
+UINT MenuItemFromCardBackside(Cards card)
+{
+    switch (card)
+    {
+    case Cards::BackBloodot: return ID_CARDBACK_BLUEDOT;
+    case Cards::BackColorful: return ID_CARDBACK_COLORFUL;
+    case Cards::BackCubert: return ID_CARDBACK_CUBERT;
+    case Cards::BackDivine: return ID_CARDBACK_DIVINE;
+    case Cards::BackCat: return ID_CARDBACK_FELINE;
+    case Cards::BackIce: return ID_CARDBACK_ICE;
+    case Cards::BackMaple: return ID_CARDBACK_MAPLE;
+    case Cards::BackPaper: return ID_CARDBACK_PAPER;
+    case Cards::BackParkett: return ID_CARDBACK_PARKETT;
+    case Cards::BackPine: return ID_CARDBACK_PINE;
+    case Cards::BackRed: return ID_CARDBACK_RED;
+    case Cards::BackRocks: return ID_CARDBACK_ROCKS;
+    case Cards::BackSafety: return ID_CARDBACK_SAFETY;
+    case Cards::BackSky: return ID_CARDBACK_SKY;
+    case Cards::BackSpace: return ID_CARDBACK_SPACE;
+    }
+
+    return 0;
+}
+
+UINT MenuItemFromBackgroundColor(BackgroundColors color)
+{
+    switch (color)
+    {
+    case BackgroundColors::Green: return ID_BACKGROUNDCOLOR_GREEN;
+    case BackgroundColors::Black: return ID_BACKGROUNDCOLOR_BLACK;
+    case BackgroundColors::DarkBlue: return ID_BACKGROUNDCOLOR_DARKBLUE;
+    case BackgroundColors::DarkGray: return ID_BACKGROUNDCOLOR_DARKGRAY;
+    case BackgroundColors::Pink: return ID_BACKGROUNDCOLOR_PINK;
+    }
+
+    return 0;
+}
+
+void UncheckAllBkgColorMenuItems(HMENU hMenu, int check)
+{
+    CheckMenuItem(hMenu, ID_BACKGROUNDCOLOR_GREEN, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_BACKGROUNDCOLOR_BLACK, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_BACKGROUNDCOLOR_DARKBLUE, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_BACKGROUNDCOLOR_DARKGRAY, MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_BACKGROUNDCOLOR_PINK, MF_UNCHECKED);
+    CheckMenuItem(hMenu, check, MF_CHECKED);
+}
+
+void LoadSettings(HWND hWnd)
+{
+    auto loadedLang = FrontendLanguage::unknown;
+    auto loadedBackside = Cards::BackBloodot;
+    auto loadedBkgColor = BackgroundColors::Default;
+    SettingsStruct checksig = {};
+    SettingsStruct settings = {};
+
+    std::fstream in("solidair.ligma", std::ios::in | std::ios::binary);
+    if (in)
+    {
+        in.read((char*)&settings, sizeof(settings));
+        in.close();
+
+        if (
+            settings.Preamble0 == checksig.Preamble0
+            && settings.Preamble1 == checksig.Preamble1
+            && settings.Preamble2 == checksig.Preamble2
+            && settings.Preamble3 == checksig.Preamble3
+            && settings.Preamble4 == checksig.Preamble4
+            && settings.Preamble5 == checksig.Preamble5
+            && settings.Preamble6 == checksig.Preamble6
+            && settings.Preamble7 == checksig.Preamble7
+            && settings.Preamble8 == checksig.Preamble8
+        ) {
+            if (settings.Preamble9 != '\6')
+            {
+                if (settings.Preamble9 == '\0')
+                {
+                    std::cerr << "This is a blooDot settings file, it does not work with this game. Ignored";
+                }
+                else
+                {
+                    std::cerr << "This is a settings file from a different game, it does not work with this game. Ignored";
+                }
+            }
+            else
+            {
+                loadedLang = settings.language;
+                loadedBackside = settings.cardBackside;
+                loadedBkgColor = settings.backgroundColor;
+                soundFxOn = settings.sfxOn;
+                musicOn = settings.musicOn;
+                commentaryOn = settings.commentaryOn;
+            }
+        }
+    }
+
+    auto hMenu = GetMenu(hWnd);
+    
+    // default language setting is taken from windows resource matching
+    if (loadedLang > FrontendLanguage::unknown && loadedLang <= FrontendLanguage::ua && loadedLang != language)
+    {
+        SetLanguage(hWnd, loadedLang);
+    }
+
+    if (loadedBkgColor <= BackgroundColors::Default || loadedBkgColor > BackgroundColors::Pink)
+    {
+        loadedBkgColor = BackgroundColors::Green;
+    }
+
+    if (loadedBkgColor != backgroundColor)
+    {
+        backgroundColor = loadedBkgColor;
+        UncheckAllBkgColorMenuItems(hMenu, MenuItemFromBackgroundColor(backgroundColor));
+    }
+
+    if (loadedBackside <= Cards::Empty || loadedBackside > Cards::BackSafety)
+    {
+        loadedBackside = Cards::BackBloodot;
+    }
+
+    if (loadedBackside != cardBackside)
+    {
+        cardBackside = loadedBackside;
+        UncheckAllBackgroundMenuItems(hMenu, MenuItemFromCardBackside(cardBackside));
+    }
+
+    CheckMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, musicOn ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_SETTINGS_SOUNDFX, soundFxOn ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_SETTINGS_COMMENTARY, commentaryOn ? MF_CHECKED : MF_UNCHECKED);
+}
+
+void SaveSettings()
+{
+    SettingsStruct settings;
+
+    settings.backgroundColor = backgroundColor;
+    settings.cardBackside = cardBackside;
+    settings.language = language;
+    settings.musicOn = musicOn;
+    settings.sfxOn = soundFxOn;
+    settings.commentaryOn = commentaryOn;
+
+    std::fstream out("solidair.ligma", std::ios::out | std::ios::trunc | std::ios::binary);
+    out.write((char*)&settings, sizeof(settings));
+    out.close();
+}
+
 void NewGame(HWND hWnd)
 {
+    gameState.backside = cardBackside;
     gameState.stockpile.numCardsOnPile = 0;
     gameState.stockpile.uncovered = -1;
+
+    COLORREF bkColor = 0;
+    switch (backgroundColor)
+    {
+    case BackgroundColors::Green:
+        gameState.bkgColor = RGB(0, 0x80, 0);
+        break;
+
+    case BackgroundColors::Black:
+        gameState.bkgColor = RGB(3, 3, 3);
+        break;
+
+    case BackgroundColors::DarkBlue:
+        gameState.bkgColor = RGB(1, 1, 0x80);
+        break;
+
+    case BackgroundColors::DarkGray:
+        gameState.bkgColor = RGB(0x69, 0x69, 0x69);
+        break;
+
+    case BackgroundColors::Pink:
+        gameState.bkgColor = RGB(0xff, 0x79, 0x79);
+        break;
+    }
 
     for (int i = 0; i < 7; ++i)
     {
@@ -813,11 +1280,23 @@ void NewGame(HWND hWnd)
     }
 
     InitNewDagobert();
+    ResetDirty(hWnd);
 
     if (hWnd != nullptr)
     {
+        UpdateWindow(hWnd);
         InvalidateRect(hWnd, NULL, false);
     }
+}
+
+void LoadGame(HWND hWnd)
+{
+    ResetDirty(hWnd);
+}
+
+void SaveGame(HWND hWnd, bool saveAs)
+{
+    ResetDirty(hWnd);
 }
 
 void InitNewDagobert()
@@ -826,7 +1305,10 @@ void InitNewDagobert()
     // up to the seventh dpile with seven.
     // the remaining cards are placed on the stockpile and covered
     // I ♥ C++
-    auto range_view = std::ranges::views::iota(0, 51);
+    // [dlatikay 20260317] does not compensate for stupidity. I had [0..51) here,
+    //                     then I introduced the "empty" card, then I wondered
+    //                     why the king of spades has made himself so scarce
+    auto range_view = std::ranges::views::iota((int)Cards::LaubAsslikum, ((int)Cards::PikKinigl) + 1);
     std::vector<int> v(std::ranges::begin(range_view), std::ranges::end(range_view));
     std::random_device rd;
     std::mt19937 g(rd());
@@ -876,6 +1358,85 @@ void InitNewDagobert()
 
         ++i;
     }
+}
+
+void SetDirty(HWND hWnd)
+{
+    if (dirty)
+    {
+        return;
+    }
+
+    WCHAR name[MAX_LOADSTRING] = {};
+    
+    wcsncpy_s(name, szTitle, MAX_LOADSTRING);
+    wcsncat_s(name, L"*", 1);
+    SetWindowText(hWnd, &name[0]);
+
+    dirty = true;
+}
+
+void ResetDirty(HWND hWnd)
+{
+    if (!dirty)
+    {
+        return;
+    }
+
+    SetWindowText(hWnd, szTitle);
+    dirty = false;
+}
+
+void UpdateTitle(HWND hWnd)
+{
+    LoadStringW(hInst, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+    if (dirty)
+    {
+        ResetDirty(hWnd);
+        SetDirty(hWnd);
+    }
+    else
+    {
+        SetDirty(hWnd);
+        ResetDirty(hWnd);
+    }
+}
+
+void SetLanguage(HWND hWnd, FrontendLanguage lang)
+{
+    if (language == lang)
+    {
+        return;
+    }
+
+    switch (lang)
+    {
+    case FrontendLanguage::de:
+        SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_GERMAN, SUBLANG_NEUTRAL), SORT_DEFAULT));
+        break;
+
+    case FrontendLanguage::fi:
+        SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_FINNISH, SUBLANG_NEUTRAL), SORT_DEFAULT));
+        break;
+
+    case FrontendLanguage::ua:
+        SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_UKRAINIAN, SUBLANG_NEUTRAL), SORT_DEFAULT));
+        break;
+
+    case FrontendLanguage::en:
+    default:
+        SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_NEUTRAL), SORT_DEFAULT));
+        break;
+    }
+
+    const auto& hMenu = GetMenu(hWnd);
+    CheckMenuItem(hMenu, ID_LANGUAGE_ENGLISH, lang == FrontendLanguage::en ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_LANGUAGE_DEUTSCH, lang == FrontendLanguage::de ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_LANGUAGE_SUOMI, lang == FrontendLanguage::fi ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hMenu, ID_LANGUAGE_UKRAINSKA, lang == FrontendLanguage::ua ? MF_CHECKED : MF_UNCHECKED);
+
+    language = lang;
+    UpdateTitle(hWnd);
 }
 
 bool CanInitiateDragHere(POINT p)
@@ -953,6 +1514,7 @@ bool UncoverStockpile(HWND hWnd)
         gameState.stockpile.uncovered = 0;
 
         InvalidateRect(hWnd, &stockPile, false);
+        SetDirty(hWnd);
 
         return true;
     }
@@ -1231,6 +1793,8 @@ bool RemoveFromDagopile(HWND hWnd, int di)
 
     // redraw the dagopile
     RedrawDagopile(hWnd, di, 1);
+
+    return true;
 }
 
 bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
@@ -1241,6 +1805,7 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
     }
 
     // cannot place on a covered pile, and must be adjacent to fit
+    // TODO: there appears to be a bug, I had been able to place a queen on a single-card pile with (supposedly) a covered king
     return pile->uncoveredFrom < pile->numCardsOnPile && IsCardAdjacent(
         card,
         pile->pile[pile->numCardsOnPile - 1],
@@ -1345,6 +1910,8 @@ int GetRank(Cards card)
     {
         return (int)(card - PikAsslikum);
     }
+
+    return -1;
 }
 
 /// <summary>

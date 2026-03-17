@@ -4,10 +4,22 @@
 #include "schema.h"
 
 ATOM RegisterWindowClass(HINSTANCE hInstance);
-BOOL InitInstance(HINSTANCE, int);
+BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND* createdHwnd);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
+void UncheckAllBackgroundMenuItems(HMENU hMenu, int check);
+void UncheckAllBkgColorMenuItems(HMENU hMenu, int check);
+void LoadSettings(HWND hWnd);
+void SaveSettings();
+void SetLanguage(HWND hWnd, FrontendLanguage lang);
+UINT MenuItemFromCardBackside(Cards card);
+UINT MenuItemFromBackgroundColor(BackgroundColors color);
+void UpdateTitle(HWND hWnd);
 void NewGame(HWND hWnd);
+void LoadGame(HWND hWnd);
+void SaveGame(HWND hWnd, bool saveAs);
+void SetDirty(HWND hWnd);
+void ResetDirty(HWND hWnd);
 void InitNewDagobert();
 bool HitTest(POINT *p, CardsBeingHit* cards);
 void ClickedOnCard(HWND hWnd);

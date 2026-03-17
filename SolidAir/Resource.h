@@ -7,16 +7,17 @@
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
 #define IDM_ABOUT                       104
+#define IDS_LCID                        104
 #define IDM_EXIT                        105
 #define IDI_SOLIDAIR                    107
 #define IDI_SMALL                       108
 #define IDC_SOLIDAIR                    109
 #define IDR_MAINFRAME                   128
 #define ID_GAME_NEW                     32771
-#define ID_Menu                         32772
+#define ID_GAME_LOAD                    32772
 #define ID_GAME_SAVE                    32773
 #define ID_GAME_SAVEAS                  32774
-#define ID_EXIT_REALLY                  32775
+#define ID_GAME_EXIT                    65535
 #define ID_REALLY_YES                   32776
 #define ID_REALLY_NO                    32777
 #define ID_REALLY_MAYBE                 32778
@@ -25,7 +26,7 @@
 #define ID_LANGUAGE_ENGLISH             32781
 #define ID_LANGUAGE_DEUTSCH             32782
 #define ID_LANGUAGE_SUOMI               32783
-#define ID_LANGUAGE_32784               32784
+#define ID_LANGUAGE_UKRAINSKA           32784
 #define ID_HELP_ONLINEDOCS              32785
 #define ID_HELP_QUICKREFERENCE          32786
 #define ID_SOUND_SOUNDEFFECTS           32787
@@ -54,6 +55,8 @@
 #define ID_CARDBACK_SPACE               32810
 #define ID_SETTINGS_SOUNDFX             32811
 #define ID_SETTINGS_BACKGROUNDMUSIC     32812
+#define ID_Menu32813                    32813
+#define ID_SETTINGS_COMMENTARY          32814
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -61,8 +64,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        129
-#define _APS_NEXT_COMMAND_VALUE         32813
+#define _APS_NEXT_RESOURCE_VALUE        132
+#define _APS_NEXT_COMMAND_VALUE         32815
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

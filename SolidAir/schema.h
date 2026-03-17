@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windows.h>
+
 typedef enum {
 	None = -1,
 	Laub = 0,
@@ -91,6 +93,23 @@ typedef enum {
 } Cards;
 
 typedef enum {
+	Default = -1,
+	Green = 0,
+	Black,
+	DarkGray,
+	DarkBlue,
+	Pink
+} BackgroundColors;
+
+typedef enum {
+	unknown = -1,
+	en = 0,
+	de = 1,
+	fi = 2,
+	ua = 3
+} FrontendLanguage;
+
+typedef enum {
 	Ignore,
 	MustDifferInColor,
 	MustMatchSuite
@@ -124,7 +143,8 @@ typedef struct {
 } DagoPile;
 
 typedef struct {
-	Cards background;
+	COLORREF bkgColor;
+	Cards backside;
 	StockPile stockpile;
 	TargetPile targetPiles[4];
 	DagoPile dagoPiles[7];
@@ -135,3 +155,24 @@ typedef struct {
 	DagoPile* pile; // nullptr if from stockpile
 	int index;
 } CardsBeingHit;
+
+#pragma pack (1)
+typedef struct SettingsStruct
+{
+	char Preamble0 = '\4';
+	char Preamble1 = 'L';
+	char Preamble2 = 'S';
+	char Preamble3 = 'L';
+	char Preamble4 = '\3';
+	char Preamble5 = 'J';
+	char Preamble6 = 'M';
+	char Preamble7 = 'L';
+	char Preamble8 = '\5';
+	char Preamble9 = '\6'; // bloodot has 0 here
+	BackgroundColors backgroundColor;
+	Cards cardBackside;
+	FrontendLanguage language;
+	bool sfxOn;
+	bool musicOn;
+	bool commentaryOn;
+} SettingsStruct;

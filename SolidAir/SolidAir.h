@@ -1,7 +1,10 @@
 #pragma once
 
+#include "commdlg.h"
 #include "resource.h"
 #include "schema.h"
+
+constexpr auto MAX_LOADSTRING = 300;
 
 ATOM RegisterWindowClass(HINSTANCE hInstance);
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND* createdHwnd);
@@ -18,6 +21,7 @@ void UpdateTitle(HWND hWnd);
 void NewGame(HWND hWnd);
 void LoadGame(HWND hWnd);
 void SaveGame(HWND hWnd, bool saveAs);
+void PrepareSaveFileDialogFilter(OPENFILENAME* dialogInfo, WCHAR(&title)[MAX_LOADSTRING], WCHAR(&filter)[MAX_LOADSTRING], ULONG titleId);
 void LoadGamestateFromFile(HWND hWnd, LPWSTR filename);
 void SaveGamestateToFile(HWND hWnd, LPWSTR filename);
 void SetDirty(HWND hWnd);

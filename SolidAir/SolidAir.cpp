@@ -9,12 +9,12 @@
 #include <format>
 #include <windows.h>
 #include <Lmcons.h>
-#include <commdlg.h>
 #include <Security.h>
 #pragma comment (lib,"Secur32.lib")
 
-constexpr auto MAX_LOADSTRING = 100;
 constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
+constexpr const wchar_t* SettingsFilename = L"solidair.ligma";
+constexpr const wchar_t* SavegameExtension = L"*.solidair";
 
 HINSTANCE hInst;
 WCHAR szTitle[MAX_LOADSTRING];
@@ -240,6 +240,25 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND *createdHwnd)
         return false;
     }
 
+    // give the toplevel popup menu items an id... windows...
+    HMENU hMenu = GetMenu(hWnd);
+    MENUITEMINFO mii;
+    ZeroMemory(&mii, sizeof(MENUITEMINFO));
+    mii.cbSize = sizeof(MENUITEMINFO);
+    mii.fMask = MIIM_ID;
+    mii.wID = ID_GAME;
+    SetMenuItemInfo(hMenu, 0, true, &mii);
+    mii.wID = ID_SETTINGS;
+    SetMenuItemInfo(hMenu, 1, true, &mii);
+    mii.wID = ID_HELP;
+    SetMenuItemInfo(hMenu, 2, true, &mii);
+
+    hMenu = GetSubMenu(hMenu, 1); // settings popup
+    mii.wID = ID_CARDBACK;
+    SetMenuItemInfo(hMenu, 9, true, &mii);
+    mii.wID = ID_BACKGROUNDCOLOR;
+    SetMenuItemInfo(hMenu, 10, true, &mii);
+
     // on a first start, sense language from environment
     if (language == FrontendLanguage::unknown)
     {
@@ -295,11 +314,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             POINT pixelPos = { pos.x, pos.y };
             
             // remember for drag initiating detection
-            lastLeftDownAt.x = pixelPos.x;
-            lastLeftDownAt.y = pixelPos.y;
-            lastLeftDownBy = GetTickCount64();
+            // [dlatikay 20260315] do not listen to non-clientarea clicks (menu)
+            if (pixelPos.x >= 0 && pixelPos.y >= 0)
+            {
+                lastLeftDownAt.x = pixelPos.x;
+                lastLeftDownAt.y = pixelPos.y;
+                lastLeftDownBy = GetTickCount64();
 
-            HitTest(&pixelPos, &cardLastClicked);
+                HitTest(&pixelPos, &cardLastClicked);
+            }
         }
 
         break;
@@ -1084,7 +1107,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 break;
 
-            case IDM_ABOUT:
+            case ID_HELP_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 
                 return true;
@@ -1179,13 +1202,14 @@ void UncheckAllBkgColorMenuItems(HMENU hMenu, int check)
 
 void LoadSettings(HWND hWnd)
 {
+    WCHAR msg[MAX_LOADSTRING];
     auto loadedLang = FrontendLanguage::unknown;
     auto loadedBackside = Cards::BackBloodot;
     auto loadedBkgColor = BackgroundColors::Default;
     SettingsStruct checksig = {};
     SettingsStruct settings = {};
 
-    std::fstream in("solidair.ligma", std::ios::in | std::ios::binary);
+    std::fstream in(SettingsFilename, std::ios::in | std::ios::binary);
     if (in)
     {
         in.read((char*)&settings, sizeof(settings));
@@ -1206,15 +1230,18 @@ void LoadSettings(HWND hWnd)
             {
                 if (settings.Preamble9 == '\0')
                 {
-                    std::cerr << "This is a blooDot settings file, it does not work with this game. Ignored";
+                    LoadString(hInst, IDS_MSG_BLOODOTSETTINGS, msg, MAX_LOADSTRING);
+                    std::cerr << &msg;
                 }
                 if (settings.Preamble9 == '\7')
                 {
-                    std::cerr << "This is a savegame, not a settings file. Ignored";
+                    LoadString(hInst, IDS_MSG_NOTSETTINGS, msg, MAX_LOADSTRING);
+                    std::cerr << &msg;
                 }
                 else
                 {
-                    std::cerr << "This is a settings file from a different game, it does not work with this game. Ignored";
+                    LoadString(hInst, IDS_MSG_SETTINGS_OTHERGAME, msg, MAX_LOADSTRING);
+                    std::cerr << &msg;
                 }
             }
             else
@@ -1275,7 +1302,7 @@ void SaveSettings()
     settings.sfxOn = soundFxOn;
     settings.commentaryOn = commentaryOn;
 
-    std::fstream out("solidair.ligma", std::ios::out | std::ios::trunc | std::ios::binary);
+    std::fstream out(SettingsFilename, std::ios::out | std::ios::trunc | std::ios::binary);
     out.write((char*)&settings, sizeof(settings));
     out.close();
 }
@@ -1311,17 +1338,19 @@ void NewGame(HWND hWnd)
 
 void LoadGame(HWND hWnd)
 {
+    WCHAR title[MAX_LOADSTRING];
+    WCHAR filter[MAX_LOADSTRING];
     wchar_t szFile[MAX_PATH] = { 0 };
     OPENFILENAME dialogInfo = {};
+
     ZeroMemory(&dialogInfo, sizeof(OPENFILENAME));
+    PrepareSaveFileDialogFilter(&dialogInfo, title, filter, IDS_LOAD_GAME);
+
     dialogInfo.lStructSize = sizeof(OPENFILENAME);
     dialogInfo.hwndOwner = hWnd;
-    dialogInfo.lpstrFilter = L"Solidair saves (*.solidair)\0*.solidair\0";
-    dialogInfo.lpstrDefExt = L".solidair";
     dialogInfo.Flags = OFN_HIDEREADONLY | OFN_EXPLORER;
     dialogInfo.lpstrFile = szFile;
     dialogInfo.nMaxFile = MAX_PATH;
-    dialogInfo.lpstrTitle = L"Load game";
 
     if (GetOpenFileName(&dialogInfo))
     {
@@ -1332,20 +1361,22 @@ void LoadGame(HWND hWnd)
 
 void SaveGame(HWND hWnd, bool saveAs)
 {
+    WCHAR title[MAX_LOADSTRING];
+    WCHAR filter[MAX_LOADSTRING];
     wchar_t szFile[MAX_PATH] = { 0 };
     OPENFILENAME dialogInfo = {};
+
     ZeroMemory(&dialogInfo, sizeof(OPENFILENAME));
+    PrepareSaveFileDialogFilter(&dialogInfo, title, filter, saveAs ? IDS_SAVE_GAME_AS : IDS_SAVE_GAME);
+
     dialogInfo.lStructSize = sizeof(OPENFILENAME);
     dialogInfo.hwndOwner = hWnd;
-    dialogInfo.lpstrFilter = L"Solidair saves (*.solidair)\0*.solidair\0";
-    dialogInfo.lpstrDefExt = L".solidair";
     dialogInfo.Flags = OFN_HIDEREADONLY | OFN_EXPLORER | OFN_OVERWRITEPROMPT;
     dialogInfo.lpstrFile = szFile;
     dialogInfo.nMaxFile = MAX_PATH;
 
     if (saveAs)
     {
-        dialogInfo.lpstrTitle = L"Save game as";
         if (GetSaveFileName(&dialogInfo))
         {
             SaveGamestateToFile(hWnd, dialogInfo.lpstrFile);
@@ -1354,7 +1385,6 @@ void SaveGame(HWND hWnd, bool saveAs)
     }
     else if (lastSavedAsFilename[0] == 0)
     {
-        dialogInfo.lpstrTitle = L"Save game";
         if (GetSaveFileName(&dialogInfo))
         {
             SaveGamestateToFile(hWnd, dialogInfo.lpstrFile);
@@ -1371,12 +1401,55 @@ void SaveGame(HWND hWnd, bool saveAs)
     SaveGamestateToFile(hWnd, lastSavedAsFilename);
 }
 
+void PrepareSaveFileDialogFilter(OPENFILENAME* dialogInfo, WCHAR(&title)[MAX_LOADSTRING], WCHAR(&filter)[MAX_LOADSTRING], ULONG titleId)
+{
+    ZeroMemory(filter, MAX_LOADSTRING);
+    LoadString(hInst, titleId, title, MAX_LOADSTRING);
+    LoadString(hInst, IDS_SAVEGAME_FILEFILTER, filter, MAX_LOADSTRING);
+
+    // filter expression is special, it has a null terminator inbetween
+    const auto& transLen = wcsnlen_s(filter, MAX_LOADSTRING);
+    const auto& wildcard = SavegameExtension;
+
+    if (transLen < MAX_LOADSTRING)
+    {
+        const auto& wildLen = wcsnlen_s(wildcard, MAX_LOADSTRING);
+
+        // "f0w0": both lengths are 1
+        filter[transLen] = TEXT('\0');
+        for (int i = 0; i < wildLen; ++i)
+        {
+            const auto& index = transLen + 1 + i;
+
+            if (index < MAX_LOADSTRING)
+            {
+                filter[index] = wildcard[i];
+            }
+        }
+
+        const auto& term = transLen + wildLen + 2;
+
+        if (term < MAX_LOADSTRING)
+        {
+            filter[term - 1] = TEXT('\0');
+            filter[term - 0] = TEXT('\0'); // yes, really.
+        }
+    }
+
+    dialogInfo->lpstrTitle = title;
+    dialogInfo->lpstrFilter = filter;
+    dialogInfo->lpstrDefExt = wildcard;
+}
+
 void LoadGamestateFromFile(HWND hWnd, LPWSTR filename)
 {
+    WCHAR msg[MAX_LOADSTRING];
     SettingsStruct checksig = {};
     SettingsStruct settings = {};
     bool canCue = false;
+    WCHAR title[MAX_LOADSTRING];
 
+    LoadString(hInst, IDS_OPEN_SAVEGAME, title, MAX_LOADSTRING);
     std::fstream in(filename, std::ios::in | std::ios::binary);
     if (in)
     {
@@ -1397,15 +1470,18 @@ void LoadGamestateFromFile(HWND hWnd, LPWSTR filename)
             {
                 if (settings.Preamble9 == '\0')
                 {
-                    MessageBox(hWnd, L"This is a blooDot file, it does not work with this game", L"Open savegame", 0);
+                    LoadString(hInst, IDS_MSG_BLOODOTSAVEGAME, msg, MAX_LOADSTRING);
+                    MessageBox(hWnd, msg, title, 0);
                 }
                 if (settings.Preamble9 == '\6')
                 {
-                    MessageBox(hWnd, L"This is a settings file, not a savegame", L"Open savegame", 0);
+                    LoadString(hInst, IDS_MSG_NOTSAVEGAME, msg, MAX_LOADSTRING);
+                    MessageBox(hWnd, msg, title, 0);
                 }
                 else
                 {
-                    MessageBox(hWnd, L"This is a file from a different game, it does not work with this game", L"Open savegame", 0);
+                    LoadString(hInst, IDS_MSG_SAVEGAME_OTHERGAME, msg, MAX_LOADSTRING);
+                    MessageBox(hWnd, msg, title, 0);
                 }
             }
             else
@@ -1415,7 +1491,8 @@ void LoadGamestateFromFile(HWND hWnd, LPWSTR filename)
         }
         else
         {
-            MessageBox(hWnd, L"The file could not be recognized as a Solidair savegame", L"Open savegame", 0);
+            LoadString(hInst, IDS_MSG_INVALID_SAVEGAME, msg, MAX_LOADSTRING);
+            MessageBox(hWnd, msg, title, 0);
         }
 
         // now load the actual gamestate (piles)
@@ -1440,7 +1517,8 @@ void LoadGamestateFromFile(HWND hWnd, LPWSTR filename)
     }
     else
     {
-        MessageBox(hWnd, L"The file could not be opened for reading", L"Open savegame", 0);
+        LoadString(hInst, IDS_COULD_NOT_READ_FILE, msg, MAX_LOADSTRING);
+        MessageBox(hWnd, msg, title, 0);
     }
 
     // loading means that we can save over this file
@@ -1620,7 +1698,88 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     CheckMenuItem(hMenu, ID_LANGUAGE_UKRAINSKA, lang == FrontendLanguage::ua ? MF_CHECKED : MF_UNCHECKED);
 
     language = lang;
+
+    // translate what's on the screen
     UpdateTitle(hWnd);
+    
+    WCHAR szCaption[MAX_LOADSTRING];
+    
+    LoadStringW(hInst, IDS_GAME, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_GAME, MF_BYCOMMAND | MF_STRING, ID_GAME, szCaption);
+    LoadStringW(hInst, IDS_GAME_NEW, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_GAME_NEW, MF_BYCOMMAND | MF_STRING, ID_GAME_NEW, szCaption);
+    LoadStringW(hInst, IDS_GAME_LOAD, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_GAME_LOAD, MF_BYCOMMAND | MF_STRING, ID_GAME_LOAD, szCaption);
+    LoadStringW(hInst, IDS_GAME_SAVE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_GAME_SAVE, MF_BYCOMMAND | MF_STRING, ID_GAME_SAVE, szCaption);
+    LoadStringW(hInst, IDS_GAME_SAVEAS, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_GAME_SAVEAS, MF_BYCOMMAND | MF_STRING, ID_GAME_SAVEAS, szCaption);
+    LoadStringW(hInst, IDS_GAME_EXIT, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_GAME_EXIT, MF_BYCOMMAND | MF_STRING, ID_GAME_EXIT, szCaption);
+
+    LoadStringW(hInst, IDS_SETTINGS, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_SETTINGS, MF_BYCOMMAND | MF_STRING, ID_SETTINGS, szCaption);
+    LoadStringW(hInst, IDS_SETTINGS_BACKGROUNDMUSIC, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_BACKGROUNDMUSIC, szCaption);
+    LoadStringW(hInst, IDS_SETTINGS_SOUNDFX, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_SETTINGS_SOUNDFX, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_SOUNDFX, szCaption);
+    LoadStringW(hInst, IDS_SETTINGS_COMMENTARY, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_SETTINGS_COMMENTARY, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_COMMENTARY, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK, MF_BYCOMMAND | MF_STRING, ID_CARDBACK, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_BLOODOT, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_BLUEDOT, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_BLUEDOT, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_FELINE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_FELINE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_FELINE, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_COLORFUL, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_COLORFUL, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_COLORFUL, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_CUBERT, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_CUBERT, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_CUBERT, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_DIVINE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_DIVINE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_DIVINE, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_ICE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_ICE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_ICE, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_MAPLE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_MAPLE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_MAPLE, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_PAPER, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_PAPER, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_PAPER, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_PARKETT, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_PARKETT, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_PARKETT, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_PINE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_PINE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_PINE, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_RED, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_RED, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_RED, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_ROCKS, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_ROCKS, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_ROCKS, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_SAFETY, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_SAFETY, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_SAFETY, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_SKY, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_SKY, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_SKY, szCaption);
+    LoadStringW(hInst, IDS_CARDBACK_SPACE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_CARDBACK_SPACE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_SPACE, szCaption);
+    LoadStringW(hInst, IDS_BACKGROUNDCOLOR, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_BACKGROUNDCOLOR, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR, szCaption);
+    LoadStringW(hInst, IDS_BACKGROUNDCOLOR_GREEN, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_GREEN, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_GREEN, szCaption);
+    LoadStringW(hInst, IDS_BACKGROUNDCOLOR_BLACK, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_BLACK, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_BLACK, szCaption);
+    LoadStringW(hInst, IDS_BACKGROUNDCOLOR_DARKBLUE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_DARKBLUE, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_DARKBLUE, szCaption);
+    LoadStringW(hInst, IDS_BACKGROUNDCOLOR_DARKGRAY, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_DARKGRAY, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_DARKGRAY, szCaption);
+    LoadStringW(hInst, IDS_BACKGROUNDCOLOR_PINK, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_PINK, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_PINK, szCaption);
+
+    LoadStringW(hInst, IDS_HELP, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_HELP, MF_BYCOMMAND | MF_STRING, ID_HELP, szCaption);
+    LoadStringW(hInst, IDS_HELP_QUICKREFERENCE, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_HELP_QUICKREFERENCE, MF_BYCOMMAND | MF_STRING, ID_HELP_QUICKREFERENCE, szCaption);
+    LoadStringW(hInst, IDS_HELP_ONLINEDOCS, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_HELP_ONLINEDOCS, MF_BYCOMMAND | MF_STRING, ID_HELP_ONLINEDOCS, szCaption);
+    LoadStringW(hInst, IDS_HELP_ABOUT, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_HELP_ABOUT, MF_BYCOMMAND | MF_STRING, ID_HELP_ABOUT, szCaption);
+
+    DrawMenuBar(hWnd);
 }
 
 bool CanInitiateDragHere(POINT p)

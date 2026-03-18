@@ -98,19 +98,30 @@
 #define ID_BACKGROUNDCOLOR              32854
 #define ID_GAME_EXIT                    32855
 #define ID_HELP_ABOUT                   32856
-#define IDS_MSG_BLOODOTSETTINGS          32857
-#define IDS_MSG_NOTSETTINGS              32858
-#define IDS_MSG_SETTINGS_OTHERGAME       32859
-#define IDS_MSG_BLOODOTSAVEGAME          32860
-#define IDS_MSG_NOTSAVEGAME              32861
-#define IDS_MSG_SAVEGAME_OTHERGAME       32862
-#define IDS_OPEN_SAVEGAME                32863
-#define IDS_MSG_INVALID_SAVEGAME         32864
-#define IDS_COULD_NOT_READ_FILE          32865
-#define IDS_LOAD_GAME                    32866
-#define IDS_SAVE_GAME                    32867
-#define IDS_SAVE_GAME_AS                 32868
-#define IDS_SAVEGAME_FILEFILTER          32869
+#define IDS_MSG_BLOODOTSETTINGS         32857
+#define IDS_MSG_NOTSETTINGS             32858
+#define IDS_MSG_SETTINGS_OTHERGAME      32859
+#define IDS_MSG_BLOODOTSAVEGAME         32860
+#define IDS_MSG_NOTSAVEGAME             32861
+#define IDS_MSG_SAVEGAME_OTHERGAME      32862
+#define IDS_OPEN_SAVEGAME               32863
+#define IDS_MSG_INVALID_SAVEGAME        32864
+#define IDS_COULD_NOT_READ_FILE         32865
+#define IDS_LOAD_GAME                   32866
+#define IDS_SAVE_GAME                   32867
+#define IDS_SAVE_GAME_AS                32868
+#define IDS_SAVEGAME_FILEFILTER         32869
+#define ID_PLAY                         32870
+#define ID_PLAY_UNDO                    32871
+#define ID_PLAY_REDO                    32872
+#define IDS_PLAY                        32873
+#define IDS_PLAY_UNDO                   32874
+#define IDS_PLAY_REDO                   32875
+#define IDS_COMMENTARY_0010             32876
+#define IDS_STRING106                   32877
+#define IDS_STRING107                   32878
+#define IDS_STRING108                   32879
+#define IDS_STRING110                   32880
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -119,7 +130,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        132
-#define _APS_NEXT_COMMAND_VALUE         32815
+#define _APS_NEXT_COMMAND_VALUE         32881
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

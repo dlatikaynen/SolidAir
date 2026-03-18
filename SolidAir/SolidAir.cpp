@@ -1,6 +1,8 @@
 #define SECURITY_WIN32
 #include "framework.h"
 #include "SolidAir.h"
+#include <stack>
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -40,6 +42,11 @@ bool soundFxOn = false;
 bool musicOn = false;
 bool commentaryOn = false;
 GameState gameState = {};
+
+// gamestate is so cheap that we can do an undo buffer as a deque of snapshots.
+// a deque... get it?
+std::stack<GameState> undoBuffer;
+std::stack<GameState> redoBuffer;
 
 // mouse operation
 bool hasCapturedTheMouseToDragCards = false;
@@ -248,12 +255,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND *createdHwnd)
     mii.fMask = MIIM_ID;
     mii.wID = ID_GAME;
     SetMenuItemInfo(hMenu, 0, true, &mii);
-    mii.wID = ID_SETTINGS;
+    mii.wID = ID_PLAY;
     SetMenuItemInfo(hMenu, 1, true, &mii);
-    mii.wID = ID_HELP;
+    mii.wID = ID_SETTINGS;
     SetMenuItemInfo(hMenu, 2, true, &mii);
+    mii.wID = ID_HELP;
+    SetMenuItemInfo(hMenu, 3, true, &mii);
 
-    hMenu = GetSubMenu(hMenu, 1); // settings popup
+    hMenu = GetSubMenu(hMenu, 2); // settings popup
     mii.wID = ID_CARDBACK;
     SetMenuItemInfo(hMenu, 9, true, &mii);
     mii.wID = ID_BACKGROUNDCOLOR;
@@ -874,6 +883,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 SaveGame(hWnd, true);
                 break;
 
+            case ID_PLAY_UNDO:
+                Undo(hWnd);
+                break;
+
+            case ID_PLAY_REDO:
+                Redo(hWnd);
+                break;
+
             case ID_CARDBACK_BLUEDOT:
                 if (cardBackside != Cards::BackBloodot)
                 {
@@ -1328,6 +1345,7 @@ void NewGame(HWND hWnd)
 
     InitNewDagobert();
     ResetDirty(hWnd);
+    ClearUndoRedo(hWnd);
 
     if (hWnd != nullptr)
     {
@@ -1525,6 +1543,7 @@ void LoadGamestateFromFile(HWND hWnd, LPWSTR filename)
     // as soon as we make any additional move
     wcsncpy_s(lastSavedAsFilename, filename, MAX_PATH);
     ResetDirty(hWnd);
+    ClearUndoRedo(hWnd);
 }
 
 void SaveGamestateToFile(HWND hWnd, LPWSTR filename)
@@ -1559,6 +1578,9 @@ void SaveGamestateToFile(HWND hWnd, LPWSTR filename)
     // saving once means that we can save again after something changed
     // without being prompted for a filename
     ResetDirty(hWnd);
+
+    // and also undo and redo buffers are reset
+    ClearUndoRedo(hWnd);
 }
 
 void InitNewDagobert()
@@ -1620,6 +1642,66 @@ void InitNewDagobert()
 
         ++i;
     }
+}
+
+void PushState(HWND hWnd)
+{
+    undoBuffer.push(gameState);
+    if (!redoBuffer.empty())
+    {
+        std::stack<GameState>().swap(redoBuffer);
+    }
+
+    const auto& hMenu = GetMenu(hWnd);
+    EnableMenuItem(hMenu, ID_PLAY_UNDO, MF_ENABLED);
+    EnableMenuItem(hMenu, ID_PLAY_REDO, MF_DISABLED);
+}
+
+void ClearUndoRedo(HWND hWnd)
+{
+    std::stack<GameState>().swap(undoBuffer);
+    std::stack<GameState>().swap(redoBuffer);
+
+    const auto& hMenu = GetMenu(hWnd);
+
+    EnableMenuItem(hMenu, ID_PLAY_UNDO, MF_DISABLED);
+    EnableMenuItem(hMenu, ID_PLAY_REDO, MF_DISABLED);
+}
+
+void Undo(HWND hWnd)
+{
+    if (undoBuffer.empty())
+    {
+        return;
+    }
+
+    const auto& hMenu = GetMenu(hWnd);
+
+    redoBuffer.push(gameState);
+    gameState = undoBuffer.top();
+    undoBuffer.pop();
+    EnableMenuItem(hMenu, ID_PLAY_UNDO, undoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
+    EnableMenuItem(hMenu, ID_PLAY_REDO, redoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
+    SetDirty(hWnd);
+    InvalidateRect(hWnd, NULL, false);
+}
+
+void Redo(HWND hWnd)
+{
+    if (redoBuffer.empty())
+    {
+        return;
+    }
+
+    const auto& hMenu = GetMenu(hWnd);
+
+    undoBuffer.push(gameState);
+    gameState = redoBuffer.top();
+    redoBuffer.pop();
+    EnableMenuItem(hMenu, ID_PLAY_UNDO, undoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
+    EnableMenuItem(hMenu, ID_PLAY_REDO, redoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
+    SetDirty(hWnd);
+    InvalidateRect(hWnd, NULL, false);
 }
 
 void SetDirty(HWND hWnd)
@@ -1717,6 +1799,13 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     LoadStringW(hInst, IDS_GAME_EXIT, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_GAME_EXIT, MF_BYCOMMAND | MF_STRING, ID_GAME_EXIT, szCaption);
 
+    LoadStringW(hInst, IDS_PLAY, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_PLAY, MF_BYCOMMAND | MF_STRING, ID_PLAY, szCaption);
+    LoadStringW(hInst, IDS_PLAY_UNDO, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_PLAY_UNDO, MF_BYCOMMAND | MF_STRING, ID_PLAY_UNDO, szCaption);
+    LoadStringW(hInst, IDS_PLAY_REDO, szCaption, MAX_LOADSTRING);
+    ModifyMenu(hMenu, ID_PLAY_REDO, MF_BYCOMMAND | MF_STRING, ID_PLAY_REDO, szCaption);
+
     LoadStringW(hInst, IDS_SETTINGS, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS, MF_BYCOMMAND | MF_STRING, ID_SETTINGS, szCaption);
     LoadStringW(hInst, IDS_SETTINGS_BACKGROUNDMUSIC, szCaption, MAX_LOADSTRING);
@@ -1779,6 +1868,8 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     LoadStringW(hInst, IDS_HELP_ABOUT, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_HELP_ABOUT, MF_BYCOMMAND | MF_STRING, ID_HELP_ABOUT, szCaption);
 
+    EnableMenuItem(hMenu, ID_PLAY_UNDO, undoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
+    EnableMenuItem(hMenu, ID_PLAY_REDO, redoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
     DrawMenuBar(hWnd);
 }
 
@@ -1854,8 +1945,8 @@ bool UncoverStockpile(HWND hWnd)
         const auto& spPos = gameState.stockpile.pos;
         const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
 
+        PushState(hWnd);
         gameState.stockpile.uncovered = 0;
-
         InvalidateRect(hWnd, &stockPile, false);
         SetDirty(hWnd);
 
@@ -1870,6 +1961,7 @@ bool CycleStockpile(HWND hWnd)
     // can't cycle on a single card, can't cycle until uncovered
     if (gameState.stockpile.numCardsOnPile > 1 && gameState.stockpile.uncovered != -1)
     {
+        PushState(hWnd);
         ++gameState.stockpile.uncovered;
 
         // cycle through them
@@ -1882,7 +1974,8 @@ bool CycleStockpile(HWND hWnd)
         const auto& stockPile = RECT{ spPos.left, spPos.top, spPos.right, spPos.bottom };
 
         InvalidateRect(hWnd, &stockPile, false);
-        
+        SetDirty(hWnd);
+
         return true;
     }
 
@@ -1946,6 +2039,8 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
             return false;
         }
 
+        PushState(hWnd);
+
         // add it to the target pile
         tP.pile[tP.numCardsOnPile] = card;
         tP.numCardsOnPile++;
@@ -1958,7 +2053,7 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
 
         InvalidateRect(hWnd, &targetPile, false);
         SetDirty(hWnd);
-        
+
         return true;
     }
 
@@ -2005,10 +2100,17 @@ bool Move(HWND hWnd, int srcIndex, int grabAt, int dstIndex)
     auto& dstPile = gameState.dagoPiles[dstIndex];
 
     int cardsMoved = 0;
+    bool statePushed = false;
 
     for (int i = grabAt; i < srcPile.numCardsOnPile; ++i)
     {
         const auto& card = srcPile.pile[i];
+
+        if (!statePushed)
+        {
+            PushState(hWnd);
+            statePushed = true;
+        }
 
         gameState.dagoPiles[dstIndex].pile[gameState.dagoPiles[dstIndex].numCardsOnPile] = card;
         ++gameState.dagoPiles[dstIndex].numCardsOnPile;
@@ -2052,6 +2154,8 @@ bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
     {
         return false;
     }
+
+    PushState(hWnd);
 
     // add it to the target pile
     tP.pile[tP.numCardsOnPile] = card;

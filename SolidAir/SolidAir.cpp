@@ -5,14 +5,17 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include <vector>
 #include <ranges>
 #include <random>
 #include <format>
 #include <windows.h>
 #include <Lmcons.h>
 #include <Security.h>
+#include <SDL3/SDL.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #pragma comment (lib,"Secur32.lib")
+#pragma comment (lib,"SDL3.lib")
+#pragma comment (lib,"SDL3_mixer.lib")
 
 constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
 constexpr const wchar_t* SettingsFilename = L"solidair.ligma";
@@ -21,6 +24,7 @@ constexpr const wchar_t* SavegameExtension = L"*.solidair";
 HINSTANCE hInst;
 WCHAR szTitle[MAX_LOADSTRING];
 WCHAR szWindowClass[MAX_LOADSTRING];
+bool isAudioAvailable = false;
 
 pfcdtInit cdtInit;
 pfcdtDraw cdtDraw;
@@ -125,6 +129,14 @@ int APIENTRY wWinMain(
     }
 
     cdtInit(&cdWidth, &cdHight);
+    if (MIX_Init())
+    {
+        isAudioAvailable = true;
+    }
+    else
+    {
+        std::cerr << "Could not initialize the SDL_mixer audio library: " << SDL_GetError();
+    }
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);

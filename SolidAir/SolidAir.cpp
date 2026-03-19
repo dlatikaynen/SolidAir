@@ -11,6 +11,7 @@
 #include <windows.h>
 #include <Lmcons.h>
 #include <Security.h>
+#define SDL_MAIN_USE_CALLBACKS 1 
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
 #pragma comment (lib,"Secur32.lib")
@@ -20,11 +21,11 @@
 constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
 constexpr const wchar_t* SettingsFilename = L"solidair.ligma";
 constexpr const wchar_t* SavegameExtension = L"*.solidair";
+constexpr const char* BackgroundMusicFile = "560446__migfus20__happy-background-music.mp3";
 
 HINSTANCE hInst;
 WCHAR szTitle[MAX_LOADSTRING];
 WCHAR szWindowClass[MAX_LOADSTRING];
-bool isAudioAvailable = false;
 
 pfcdtInit cdtInit;
 pfcdtDraw cdtDraw;
@@ -51,6 +52,12 @@ GameState gameState = {};
 // a deque... get it?
 std::stack<GameState> undoBuffer;
 std::stack<GameState> redoBuffer;
+
+// audio
+MIX_Audio* load_audio(const char* fname);
+bool isAudioAvailable = false;
+static MIX_Mixer* mixer = NULL;
+static MIX_Track* track1 = NULL;
 
 // mouse operation
 bool hasCapturedTheMouseToDragCards = false;
@@ -132,6 +139,56 @@ int APIENTRY wWinMain(
     if (MIX_Init())
     {
         isAudioAvailable = true;
+        
+        MIX_Audio* music = NULL;
+        MIX_Audio* sound = NULL;
+        
+        mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+        if (!mixer)
+        {
+            SDL_Log("Could not create audio mixer: %s", SDL_GetError());
+            
+            isAudioAvailable = false;
+        }
+
+        music = load_audio(BackgroundMusicFile);
+        if (!music) 
+        {
+            isAudioAvailable = false;
+        }
+
+        track1 = MIX_CreateTrack(mixer);
+        if (!track1)
+        {
+            SDL_Log("Could not create a mixer track: %s", SDL_GetError());
+            
+            isAudioAvailable = false;
+        }
+
+        if (isAudioAvailable)
+        {
+            MIX_SetTrackAudio(track1, music);
+            
+            const auto options = SDL_CreateProperties();
+
+            if (!options)
+            {
+                SDL_Log("Could not create audio playback options: %s", SDL_GetError());
+                
+                isAudioAvailable = false;
+            }
+
+            if (isAudioAvailable)
+            {
+                /* loop forever */
+                SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
+
+                /* start the audio playing. music plays through once, with the sound effect playing in a loop at the same time.
+                 * no extra options this time, so a zero for the second arg */
+                MIX_PlayTrack(track1, options);
+                SDL_DestroyProperties(options);
+            }
+        }
     }
     else
     {
@@ -206,7 +263,29 @@ int APIENTRY wWinMain(
         }
     }
 
+    if (isAudioAvailable)
+    {
+        MIX_Quit();
+    }
+
     return (int)msg.wParam;
+}
+
+static MIX_Audio* load_audio(const char* fname)
+{
+    char* path = NULL;
+    MIX_Audio* audio;
+    
+    //SDL_asprintf(&path, "%s%s", SDL_GetBasePath(), fname);
+    audio = MIX_LoadAudio(mixer, fname, false);
+    if (!audio) 
+    {
+        SDL_Log("Couldn't load %s: %s", path, SDL_GetError());
+    }
+
+    SDL_free(path);
+    
+    return audio;
 }
 
 ATOM RegisterWindowClass(HINSTANCE hInstance)

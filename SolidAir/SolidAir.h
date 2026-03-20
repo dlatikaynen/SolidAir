@@ -55,4 +55,5 @@ typedef BOOL(WINAPI* pfcdtInit)(int*, int*);
 typedef BOOL(WINAPI* pfcdtDraw)(HDC, int x, int y, int card, int type, DWORD color);
 typedef BOOL(WINAPI* pfcdtDrawEx)(HDC, int x, int y, int dx, int dy, int card, int type, DWORD color);
 typedef BOOL(WINAPI* pfcdtAnimate)(HDC hdc, int cardback, int x, int y, int state);
+typedef BOOL(WINAPI* pfcdtName)(HDC hdc, int card, int type, wchar_t* name);
 typedef void (WINAPI* pfcdtTerm) (void);

@@ -31,6 +31,7 @@ pfcdtInit cdtInit;
 pfcdtDraw cdtDraw;
 pfcdtDrawEx cdtDrawEx;
 pfcdtAnimate cdtAnimate;
+pfcdtName cdtName;
 pfcdtTerm cdtTerm;
 
 int cdWidth;
@@ -98,6 +99,7 @@ int APIENTRY wWinMain(
     cdtDraw = (pfcdtDraw)GetProcAddress(cards, "cdtDraw");
     cdtDrawEx = (pfcdtDrawEx)GetProcAddress(cards, "cdtDrawExt");
     cdtAnimate = (pfcdtAnimate)GetProcAddress(cards, "cdtAnimate");
+    cdtName = (pfcdtName)GetProcAddress(cards, "cdtName");
     cdtTerm = (pfcdtTerm)GetProcAddress(cards, "cdtTerm");
 
     if (cdtInit == nullptr)
@@ -126,6 +128,12 @@ int APIENTRY wWinMain(
         std::cerr << "Failed to bind to cdtAnimate";
 
         return FALSE;
+    }
+
+    if (cdtName == nullptr)
+    {
+        // not having this is ignored since it is a later addition
+        std::cerr << "Failed to bind to cdtName";
     }
 
     if (cdtTerm == nullptr)

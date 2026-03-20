@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include <iostream>
 #include <objidl.h> 
 #include <windows.h>
@@ -183,11 +183,237 @@ extern "C" BOOL WINAPI cdtDraw(HDC hdc, int x, int y, int card, int type, DWORD 
 
 extern "C" BOOL WINAPI cdtDrawExt(HDC hdc, int x, int y, int dx, int dy, int card, int suit, DWORD color)
 {
+    // this version does not (yet) draw extended representations
     return true;
 }
 
 extern "C" BOOL WINAPI cdtAnimate(HDC hdc, int cardback, int x, int y, int frame)
 {
+    // this version does not (yet) animate backgrounds
+    return true;
+}
+
+// this had not been part of the original cards.dll, it is an innovation
+extern "C" BOOL __declspec(dllexport) cdtName(HDC hdc, int card, int type, wchar_t* name)
+{
+    switch (card)
+    {
+    case 0:
+        wcsncpy_s(name, 4, L"♣-1", 4);
+        break;
+
+    case 1: 
+        wcsncpy_s(name, 4, L"♣-2", 4);
+        break;
+
+    case 2: 
+        wcsncpy_s(name, 4, L"♣-3", 4);
+        break;
+
+    case 3: 
+        wcsncpy_s(name, 4, L"♣-4", 4);
+        break;
+
+    case 4: 
+        wcsncpy_s(name, 4, L"♣-5", 4);
+        break;
+
+    case 5: 
+        wcsncpy_s(name, 4, L"♣-6", 4);
+        break;
+
+    case 6: 
+        wcsncpy_s(name, 4, L"♣-7", 4);
+        break;
+
+    case 7: 
+        wcsncpy_s(name, 4, L"♣-8", 4);
+        break;
+
+    case 8: 
+        wcsncpy_s(name, 4, L"♣-9", 4);
+        break;
+
+    case 9: 
+        wcsncpy_s(name, 5, L"♣-10", 5);
+        break;
+
+    case 10: 
+        wcsncpy_s(name, 9, L"Lancelot", 9);
+        break;
+
+    case 11: 
+        wcsncpy_s(name, 7, L"Helena", 7);
+        break;
+
+    case 12: 
+        wcsncpy_s(name, 10, L"Alexander", 10);
+        break;
+
+    case 13:
+        wcsncpy_s(name, 4, L"♦-1", 4);
+        break;
+
+    case 14: 
+        wcsncpy_s(name, 4, L"♦-2", 4);
+        break;
+
+    case 15: 
+        wcsncpy_s(name, 4, L"♦-3", 4);
+        break;
+
+    case 16: 
+        wcsncpy_s(name, 4, L"♦-4", 4);
+        break;
+
+    case 17: 
+        wcsncpy_s(name, 4, L"♦-5", 4);
+        break;
+
+    case 18: 
+        wcsncpy_s(name, 4, L"♦-6", 4);
+        break;
+
+    case 19: 
+        wcsncpy_s(name, 4, L"♦-7", 4);
+        break;
+
+    case 20: 
+        wcsncpy_s(name, 4, L"♦-8", 4);
+        break;
+
+    case 21: 
+        wcsncpy_s(name, 4, L"♦-9", 4);
+        break;
+
+    case 22: 
+        wcsncpy_s(name, 5, L"♦-10", 5);
+        break;
+
+    case 23: 
+        wcsncpy_s(name, 7, L"Hector", 7);
+        break;
+
+    case 24: 
+        wcsncpy_s(name, 7, L"Rachel", 7);
+        break;
+
+    case 25: 
+        wcsncpy_s(name, 7, L"Julius", 7);
+        break;
+
+    case 26: 
+        wcsncpy_s(name, 4, L"♥-1", 4);
+        break;
+
+    case 27: 
+        wcsncpy_s(name, 4, L"♥-2", 4);
+        break;
+
+    case 28: 
+        wcsncpy_s(name, 4, L"♥-3", 4);
+        break;
+
+    case 29: 
+        wcsncpy_s(name, 4, L"♥-4", 4);
+        break;
+
+    case 30: 
+        wcsncpy_s(name, 4, L"♥-5", 4);
+        break;
+
+    case 31: 
+        wcsncpy_s(name, 4, L"♥-6", 4);
+        break;
+
+    case 32: 
+        wcsncpy_s(name, 4, L"♥-7", 4);
+        break;
+
+    case 33: 
+        wcsncpy_s(name, 4, L"♥-8", 4);
+        break;
+
+    case 34: 
+        wcsncpy_s(name, 4, L"♥-9", 4);
+        break;
+
+    case 35: 
+        wcsncpy_s(name, 5, L"♥-10", 5);
+        break;
+
+    case 36: 
+        wcsncpy_s(name, 8, L"Étienne", 8);
+        break;
+
+    case 37: 
+        wcsncpy_s(name, 7, L"Jeanne", 7);
+        break;
+
+    case 38: 
+        wcsncpy_s(name, 8, L"Charles", 8);
+        break;
+
+    case 39: 
+        wcsncpy_s(name, 4, L"♠-1", 4);
+        break;
+
+    case 40: 
+        wcsncpy_s(name, 4, L"♠-2", 4);
+        break;
+
+    case 41:
+        wcsncpy_s(name, 4, L"♠-3", 4);
+        break;
+
+    case 42: 
+        wcsncpy_s(name, 4, L"♠-4", 4);
+        break;
+
+    case 43: 
+        wcsncpy_s(name, 4, L"♠-5", 4);
+        break;
+
+    case 44: 
+        wcsncpy_s(name, 4, L"♠-6", 4);
+        break;
+
+    case 45: 
+        wcsncpy_s(name, 4, L"♠-7", 4);
+        break;
+
+    case 46: 
+        wcsncpy_s(name, 4, L"♠-8", 4);
+        break;
+
+    case 47: 
+        wcsncpy_s(name, 4, L"♠-9", 4);
+        break;
+
+    case 48: 
+        wcsncpy_s(name, 5, L"♠-10", 5);
+        break;
+
+    case 49: 
+        wcsncpy_s(name, 6, L"Ogier", 6);
+        break;
+
+    case 50: 
+        wcsncpy_s(name, 7, L"Pallas", 7);
+        break;
+
+    case 51:
+        wcsncpy_s(name, 6, L"David", 6);
+        break;
+
+    case 52: 
+        wcsncpy_s(name, 6, L"Joker", 6);
+        break;
+
+    default:
+        return false;
+    }
+
     return true;
 }
 

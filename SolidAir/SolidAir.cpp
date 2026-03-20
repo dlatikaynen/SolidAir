@@ -864,11 +864,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 const auto& inDrag = hasCapturedTheMouseToDragCards && !cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0);
                 auto drawCount = dpile.numCardsOnPile;
 
-                if (inDrag && &dpile == cardsBeingDragged.pile)
+                if (inDrag && cardsBeingDragged.pile == &dpile)
                 {
                     drawCount -= cardsBeingDragged.index; // TODO: likely not correct wrt to index vs count
                 }
-
+                
                 if (drawCount == 0)
                 {
                     // this dago pile is empty

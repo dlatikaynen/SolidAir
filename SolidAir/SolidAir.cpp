@@ -168,7 +168,7 @@ int APIENTRY wWinMain(
         if (isAudioAvailable)
         {
             MIX_SetTrackAudio(track1, music);
-            
+            MIX_SetTrackGain(track1, 0);
             const auto options = SDL_CreateProperties();
 
             if (!options)
@@ -183,8 +183,7 @@ int APIENTRY wWinMain(
                 /* loop forever */
                 SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
 
-                /* start the audio playing. music plays through once, with the sound effect playing in a loop at the same time.
-                 * no extra options this time, so a zero for the second arg */
+                /* start the audio playing */
                 MIX_PlayTrack(track1, options);
                 SDL_DestroyProperties(options);
             }
@@ -238,6 +237,11 @@ int APIENTRY wWinMain(
     }
 
     NewGame(hWnd);
+
+    if (isAudioAvailable && musicOn)
+    {
+        MIX_SetTrackGain(track1, 0.8);
+    }
 
     // ancient main message loop
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SOLIDAIR));
@@ -1209,6 +1213,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case ID_SETTINGS_BACKGROUNDMUSIC:
                 musicOn = !musicOn;
                 CheckMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, musicOn ? MF_CHECKED : MF_UNCHECKED);
+                MIX_SetTrackGain(track1, musicOn ? 0.8 : 0);
 
                 break;
 

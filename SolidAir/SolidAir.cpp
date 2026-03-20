@@ -446,7 +446,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (HitTest(&pixelPos, &stillHit))
                 {
                     if (
-                        (stillHit.fromStockpile && cardLastClicked.fromStockpile && stillHit.index != -1 && stillHit.index == cardLastClicked.index)
+                        (stillHit.fromStockpile && cardLastClicked.fromStockpile && stillHit.index == cardLastClicked.index)
                         ||
                         (!stillHit.fromStockpile && !cardLastClicked.fromStockpile && stillHit.index != -1 && stillHit.index == cardLastClicked.index && stillHit.pile->pos.left == cardLastClicked.pile->pos.left)
                     )
@@ -940,6 +940,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
 
                         cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
+                        cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
                     }
                 }
                 else
@@ -2008,7 +2009,7 @@ bool HitTest(POINT *p, CardsBeingHit* cards)
             // take this one!
             cards->fromStockpile = true;
             cards->pile = nullptr;
-            cards->index = gameState.stockpile.numCardsOnPile - 1;
+            cards->index = gameState.stockpile.uncovered;
 
             return true;
         }

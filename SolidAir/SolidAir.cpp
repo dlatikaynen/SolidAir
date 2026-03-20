@@ -483,6 +483,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     dragOffset.x = pixelPos.x - draggedFrom.x;
                     dragOffset.y = pixelPos.y - draggedFrom.y;
+                 
+                    // optimization potential: we can invalidate just the areas that are covered by the drag
                     InvalidateRect(hWnd, NULL, false);
                     handled = true;
                 }
@@ -858,9 +860,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 const auto& dpile = gameState.dagoPiles[pi];
                 const auto& dpos = dpile.pos;
 
-                if (dpile.numCardsOnPile == 0)
+                // first determine the not dragged part
+                const auto& inDrag = hasCapturedTheMouseToDragCards && !cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0);
+                auto drawCount = dpile.numCardsOnPile;
+
+                if (inDrag && &dpile == cardsBeingDragged.pile)
+                {
+                    drawCount -= cardsBeingDragged.index; // TODO: likely not correct wrt to index vs count
+                }
+
+                if (drawCount == 0)
                 {
                     // this dago pile is empty
+                    // this also means that we could not drag anything off here,
+                    // so we don't need to handle the inDrag scenario here
                     HPEN hOldPen = (HPEN)SelectObject(hdc, hDashPen);
                     HBRUSH prevBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
                     Rectangle(
@@ -877,7 +890,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 else
                 {
                     // the stack
-                    for (int i = 0; i < dpile.numCardsOnPile; ++i)
+                    for (int i = 0; i < drawCount; ++i)
                     {
                         const auto& dpileCard = dpile.pile[i];
 
@@ -904,35 +917,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 const auto& uncoveredCard = gameState.stockpile.pile[gameState.stockpile.uncovered];
 
-                if (hasCapturedTheMouseToDragCards)
+                if (hasCapturedTheMouseToDragCards && cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0))
                 {
                     // if the card being dragged is already off the pile, even slightly,
                     // only then we draw the next card (or the empty pile indication) underneath
-                    if (dragOffset.x != 0 || dragOffset.y != 0)
+                    if (gameState.stockpile.numCardsOnPile == 1)
                     {
-                        if (gameState.stockpile.numCardsOnPile == 1)
-                        {
-                            // the empty stack is rendered as a card back because
-                            // that's the joker hiding there at the bottom
-                            cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
-                        }
-                        else if (gameState.stockpile.numCardsOnPile > 1)
-                        {
-                            // > 1 because the card currently being dragged, still counts as top of the pile until it is placed
-                            int nextStockpileIndex = gameState.stockpile.uncovered + 1;
-
-                            if (nextStockpileIndex == gameState.stockpile.numCardsOnPile)
-                            {
-                                nextStockpileIndex = 0;
-                            }
-
-                            const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
-
-                            cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
-                        }
+                        // the empty stack is rendered as a card back because
+                        // that's the joker hiding there at the bottom
+                        cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
                     }
+                    else if (gameState.stockpile.numCardsOnPile > 1)
+                    {
+                        // > 1 because the card currently being dragged, still counts as top of the pile until it is placed
+                        int nextStockpileIndex = gameState.stockpile.uncovered + 1;
 
-                    cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
+                        if (nextStockpileIndex == gameState.stockpile.numCardsOnPile)
+                        {
+                            nextStockpileIndex = 0;
+                        }
+
+                        const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
+
+                        cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
+                    }
                 }
                 else
                 {

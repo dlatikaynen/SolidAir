@@ -10,6 +10,7 @@
 #include <format>
 #include <windows.h>
 #include <Lmcons.h>
+#include <shellapi.h>
 #include <commctrl.h>
 #include <Security.h>
 #define SDL_MAIN_USE_CALLBACKS 1 
@@ -18,6 +19,7 @@
 #pragma comment (lib,"Secur32.lib")
 #pragma comment (lib,"SDL3.lib")
 #pragma comment (lib,"SDL3_mixer.lib")
+#pragma comment (lib,"Shell32.lib")
 #pragma comment (lib,"Comctl32.lib")
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
@@ -25,6 +27,8 @@ constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
 constexpr const wchar_t* SettingsFilename = L"solidair.ligma";
 constexpr const wchar_t* SavegameExtension = L"*.solidair";
 constexpr const char* BackgroundMusicFile = "560446__migfus20__happy-background-music.mp3";
+constexpr const char* musicUrl = "https://freesound.org/s/560446";
+constexpr const char *githubUrl = "https://github.com/dlatikaynen/SolidAir/issues/new";
 
 HINSTANCE hInst;
 WCHAR szTitle[MAX_LOADSTRING];
@@ -2571,14 +2575,40 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
         return (INT_PTR)TRUE;
 
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDC_ABOUT_OK || LOWORD(wParam) == IDCANCEL)
+    case WM_NOTIFY:
         {
-            EndDialog(hDlg, LOWORD(wParam));
+            LPNMHDR pnmh = (LPNMHDR)lParam;
 
-            return (INT_PTR)TRUE;
+            if (pnmh->code == NM_CLICK || pnmh->code == NM_RETURN)
+            {
+                PNMLINK pNMLink = (PNMLINK)lParam;
+                const auto& item = pNMLink->hdr.idFrom;
+
+                if (item == IDC_ABOUT_LABEL_MUSIC)
+                {
+                    ShellExecuteA(0, "open", musicUrl, NULL, NULL, SW_SHOWDEFAULT);
+                }
+                else if (item == IDC_ABOUT_LABEL_GITHUB)
+                {
+                    ShellExecuteA(0, "open", githubUrl, NULL, NULL, SW_SHOWDEFAULT);
+                }
+            }
         }
-    
+
+        break;
+
+    case WM_COMMAND:
+        {
+            const auto& cmd = LOWORD(wParam);
+
+            if (cmd == IDC_ABOUT_OK || cmd == IDCANCEL)
+            {
+                EndDialog(hDlg, LOWORD(wParam));
+
+                return (INT_PTR)TRUE;
+            }
+        }
+
         break;
     }
     

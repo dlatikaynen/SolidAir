@@ -8,9 +8,9 @@
 #include "resource.h"
 #pragma comment (lib,"Gdiplus.lib")
 
-static Gdiplus::Image* cards[68];
+static Gdiplus::Image* cards[69];
 static int numCards = 0;
-constexpr int const ubound = 67;
+constexpr int const ubound = 68;
 ULONG_PTR gdiplusToken = 0;
 HMODULE dllModule = 0;
 
@@ -39,7 +39,7 @@ extern "C" BOOL WINAPI cdtInit(int* width, int* height)
     Gdiplus::GdiplusStartupInput gdiplusStartupInput;
     GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
-    for (int i = 0; i < 68; ++i)
+    for (int i = 0; i <= ubound; ++i)
     {
         cards[i] = nullptr;
         IStream* pStream = nullptr;

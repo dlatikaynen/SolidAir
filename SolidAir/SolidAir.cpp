@@ -246,9 +246,16 @@ int APIENTRY wWinMain(
 
     NewGame(hWnd);
 
-    if (isAudioAvailable && musicOn)
+    if (isAudioAvailable)
     {
-        MIX_SetTrackGain(track1, 0.8);
+        MIX_SetTrackGain(track1, musicOn ? 0.8 : 0);
+    }
+    else
+    {
+        const auto& hMenu = GetMenu(hWnd);
+
+        EnableMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, MF_DISABLED);
+        EnableMenuItem(hMenu, ID_SETTINGS_SOUNDFX, MF_DISABLED);
     }
 
     // ancient main message loop

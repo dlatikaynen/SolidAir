@@ -13,7 +13,20 @@
 #define IDI_SMALL                       108
 #define IDC_SOLIDAIR                    109
 #define IDR_MAINFRAME                   128
+#define IDC_ABOUT_OK                    128
 #define IDR_MUSIC_HAPPY                 132
+#define IDC_ABOUT_LABEL_PRODUCT         1000
+#define IDC_ABOUT_ICON                  1001
+#define IDC_SYSLINK1                    1002
+#define IDC_ABOUT_LABEL_MUSIC           1002
+#define IDC_SYSLINK2                    1003
+#define IDC_ABOUT_LABEL_GITHUB          1003
+#define IDC_ABOUT_LABEL_COPYRIIGHT      1005
+#define IDC_ABOUT_LABEL_PUBLISHER       1006
+#define IDC_ABOUT_LABEL_DESIGN          1007
+#define IDC_ABOUT_LABEL_DESIGN2         1008
+#define IDC_ABOUT_LABEL_DEDICATION      1008
+#define IDC_ABOUT_LABEL_LEGAL           1009
 #define ID_GAME                         32770
 #define ID_GAME_NEW                     32771
 #define ID_GAME_LOAD                    32772
@@ -123,7 +136,18 @@
 #define IDS_STRING107                   32878
 #define IDS_STRING108                   32879
 #define IDS_STRING110                   32880
+#define IDS_ABOUT_DIALOG_TITLE          32900
+#define IDS_ABOUT_PRODUCT               32901
+#define IDS_ABOUT_COPYRIGHT             32902
+#define IDS_ABOUT_PUBLISHER             32903
+#define IDS_ABOUT_DESIGN                32904
+#define IDS_ABOUT_ARTWORK               32905
+#define IDS_ABOUT_MUSIC                 32906
+#define IDS_ABOUT_LEGAL                 32907
+#define IDS_ABOUT_DEDICATION            32908
+#define IDS_ABOUT_GITHUB                32909
 #define IDC_STATIC                      -1
+#define IDC_ABOUT_LABEL_ADDITIONAL_ARTWORK -1
 
 // Next default values for new objects
 // 
@@ -132,7 +156,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        133
 #define _APS_NEXT_COMMAND_VALUE         32881
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

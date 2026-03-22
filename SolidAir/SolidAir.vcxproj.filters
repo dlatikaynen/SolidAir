@@ -48,10 +48,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico">
+    <Image Include="SolidAir.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="SolidAir.ico">
+    <Image Include="solidair-icon.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
@@ -59,5 +59,10 @@
     <Media Include="560446__migfus20__happy-background-music.mp3">
       <Filter>Resource Files</Filter>
     </Media>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="solidair-icon.pov">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

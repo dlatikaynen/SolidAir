@@ -26,6 +26,11 @@
 #define IDC_ABOUT_LABEL_DESIGN2         1008
 #define IDC_ABOUT_LABEL_DEDICATION      1008
 #define IDC_ABOUT_LABEL_LEGAL           1009
+#define IDC_SAVEPROMPT_SAVE             1010
+#define IDC_SAVEPROMPT_DONT_SAVE        1011
+#define IDC_SAVEPROMPT_CANCEL           1012
+#define IDC_SAVEPROMPT_LABEL            1013
+#define IDC_SAVEPROMPT                  1013
 #define ID_GAME                         32770
 #define ID_GAME_NEW                     32771
 #define ID_GAME_LOAD                    32772
@@ -155,7 +160,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        133
 #define _APS_NEXT_COMMAND_VALUE         32881
-#define _APS_NEXT_CONTROL_VALUE         1010
+#define _APS_NEXT_CONTROL_VALUE         1014
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

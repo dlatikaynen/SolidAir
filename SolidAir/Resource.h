@@ -30,7 +30,7 @@
 #define IDC_SAVEPROMPT_DONT_SAVE        1011
 #define IDC_SAVEPROMPT_CANCEL           1012
 #define IDC_SAVEPROMPT_LABEL            1013
-#define IDC_SAVEPROMPT                  1013
+#define IDD_SAVEPROMPT                  1013
 #define ID_GAME                         32770
 #define ID_GAME_NEW                     32771
 #define ID_GAME_LOAD                    32772

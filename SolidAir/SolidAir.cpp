@@ -1003,11 +1003,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (wmId)
             {
             case ID_GAME_NEW:
+                if (!PromptToSaveChanges(hWnd))
+                {
+                    return true;
+                }
+
                 NewGame(hWnd);
 
                 return true;
 
             case ID_GAME_LOAD:
+                if (!PromptToSaveChanges(hWnd))
+                {
+                    return true;
+                }
+
                 LoadGame(hWnd);
                 break;
 
@@ -1268,6 +1278,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             case ID_GAME_EXIT:
             case IDM_EXIT:
+                if (!PromptToSaveChanges(hWnd))
+                {
+                    return true;
+                }
+
                 DestroyWindow(hWnd);
                 
                 return true;
@@ -1277,6 +1292,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_DESTROY:
+        if (!PromptToSaveChanges(hWnd))
+        {
+            return true;
+        }
+
         SaveSettings();
         PostQuitMessage(0);
 
@@ -1868,9 +1888,17 @@ void ResetDirty(HWND hWnd)
     dirty = false;
 }
 
-void PromptToSaveChanges(HWND hWnd)
+// will return true if we're allowed to proceed with exiting
+bool PromptToSaveChanges(HWND hWnd)
 {
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, PromptSave);
+    if (!dirty)
+    {
+        return true;
+    }
+
+    DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEPROMPT), hWnd, PromptSave);
+    
+    return false;
 }
 
 void UpdateTitle(HWND hWnd)

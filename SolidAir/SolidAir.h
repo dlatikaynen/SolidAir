@@ -33,7 +33,7 @@ void ClearUndoRedo(HWND hWnd);
 void PushState(HWND hWnd);
 void SetDirty(HWND hWnd);
 void ResetDirty(HWND hWnd);
-void PromptToSaveChanges(HWND hWnd);
+bool PromptToSaveChanges(HWND hWnd);
 void InitNewDagobert();
 bool HitTest(POINT *p, CardsBeingHit* cards);
 void ClickedOnCard(HWND hWnd);

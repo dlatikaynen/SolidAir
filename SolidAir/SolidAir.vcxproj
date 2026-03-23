@@ -132,6 +132,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DialogAbout.h" />
+    <ClInclude Include="DialogSavePrompt.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="schema.h" />
@@ -140,6 +142,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DialogAbout.cpp" />
+    <ClCompile Include="DialogSavePrompt.cpp" />
     <ClCompile Include="schema.cpp" />
     <ClCompile Include="SolidAir.cpp" />
   </ItemGroup>

@@ -4,12 +4,15 @@
 #include "resource.h"
 #include "schema.h"
 
+constexpr const char* musicUrl = "https://freesound.org/s/560446";
+constexpr const char* githubUrl = "https://github.com/dlatikaynen/SolidAir/issues/new";
 constexpr auto MAX_LOADSTRING = 300;
+
+extern HINSTANCE hInst;
 
 ATOM RegisterWindowClass(HINSTANCE hInstance);
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND* createdHwnd);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 void UncheckAllBackgroundMenuItems(HMENU hMenu, int check);
 void UncheckAllBkgColorMenuItems(HMENU hMenu, int check);
 void LoadSettings(HWND hWnd);
@@ -30,6 +33,7 @@ void ClearUndoRedo(HWND hWnd);
 void PushState(HWND hWnd);
 void SetDirty(HWND hWnd);
 void ResetDirty(HWND hWnd);
+bool PromptToSaveChanges(HWND hWnd);
 void InitNewDagobert();
 bool HitTest(POINT *p, CardsBeingHit* cards);
 void ClickedOnCard(HWND hWnd);

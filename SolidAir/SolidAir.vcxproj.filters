@@ -33,12 +33,24 @@
     <ClInclude Include="SDL_mixer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DialogSavePrompt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DialogAbout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SolidAir.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="schema.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DialogAbout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DialogSavePrompt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

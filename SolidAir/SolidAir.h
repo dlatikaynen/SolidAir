@@ -13,7 +13,9 @@ extern HINSTANCE hInst;
 ATOM RegisterWindowClass(HINSTANCE hInstance);
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND* createdHwnd);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-bool Won();
+void PaintGame(HDC hdc, PAINTSTRUCT* ps);
+void PaintDance(HDC hdc, PAINTSTRUCT* ps);
+bool Won(HWND hWnd);
 void UncheckAllBackgroundMenuItems(HMENU hMenu, int check);
 void UncheckAllBkgColorMenuItems(HMENU hMenu, int check);
 void LoadSettings(HWND hWnd);
@@ -56,6 +58,7 @@ bool IsCardAdjacent(Cards smaller, Cards biggger, CardColorMatchMode matchColor)
 bool GetColor(Cards card);
 Suite GetSuite(Cards card);
 int GetRank(Cards card);
+void Dance(HWND hWnd);
 
 typedef BOOL(WINAPI* pfcdtInit)(int*, int*);
 typedef BOOL(WINAPI* pfcdtDraw)(HDC, int x, int y, int card, int type, DWORD color);

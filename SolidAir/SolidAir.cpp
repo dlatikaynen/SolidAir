@@ -55,6 +55,8 @@ bool soundFxOn = false;
 bool musicOn = false;
 bool commentaryOn = false;
 GameState gameState = {};
+bool winningAnimationStage = 0;
+long winningAnimationTicks = 0;
 
 // gamestate is so cheap that we can do an undo buffer as a deque of snapshots.
 // a deque... get it?
@@ -814,7 +816,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HBITMAP memBitmap = CreateCompatibleBitmap(rawDc, width, height);
             SelectObject(hdc, memBitmap);
 
-            // paint shrubbery
+            // paint shrubbery: always
             COLORREF bkgColor = 0;
             switch (gameState.backgroundColor)
             {
@@ -841,159 +843,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             SetBkColor(hdc, bkgColor);
             HBRUSH shrubbery = CreateSolidBrush(bkgColor);
-            HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
 
-            // draw selection indicator
-            if (currentDagopi != -1)
+            if (winningAnimationStage == 0)
             {
-                HPEN selPen = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNSHADOW));
-                HPEN prevOutline = (HPEN)SelectObject(hdc, selPen);
-                HBRUSH prevFill = (HBRUSH)SelectObject(hdc, GetSysColorBrush(COLOR_HIGHLIGHT));
-
-                const auto& dagoPos = gameState.dagoPiles[currentDagopi].pos;
-                const auto& halfDist = dist / 2;
-                const auto& centerX = dagoPos.left + (dagoPos.right - dagoPos.left) / 2;
-                const auto& centerY = dagoPos.top - halfDist;
-                POINT vertices[] = { 
-                    {centerX - dist, centerY - 3},
-                    {centerX + dist, centerY - 3},
-                    {centerX, centerY + 3}
-                };
-            
-                Polygon(hdc, vertices, sizeof(vertices) / sizeof(vertices[0]));
-                SelectObject(hdc, prevOutline);
-                SelectObject(hdc, prevFill);
-                DeleteObject(selPen);
-            }
-
-            // prepare brush for pile borders
-            HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, GetSysColorBrush(GRAY_BRUSH));
-
-            for (int pi = 0; pi < 7; ++pi)
-            {
-                // the target piles
-                if (pi < 4)
-                {
-                    const auto& tpile = gameState.targetPiles[pi];
-                    const auto& tpos = tpile.pos;
-
-                    if (tpile.numCardsOnPile == 0)
-                    {
-                        // this target pile is empty
-                        Rectangle(
-                            hdc,
-                            tpos.left,
-                            tpos.top,
-                            tpos.right,
-                            tpos.bottom
-                        );
-                    }
-                    else
-                    {
-                        // we only draw the visible top card. the others are considered to be beneath it and covered
-                        const auto& tpileCard = tpile.pile[tpile.numCardsOnPile - 1];
-
-                        cdtDraw(hdc, tpos.left, tpos.top, tpileCard, 0, 0);
-                    }
-                }
-
-                // the dagobert piles
-                const auto& dpile = gameState.dagoPiles[pi];
-                const auto& dpos = dpile.pos;
-
-                // first determine the not dragged part
-                const auto& inDrag = hasCapturedTheMouseToDragCards && !cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0);
-                auto drawCount = dpile.numCardsOnPile;
-
-                if (inDrag && cardsBeingDragged.pile == &dpile)
-                {
-                    drawCount -= cardsBeingDragged.index; // TODO: likely not correct wrt to index vs count
-                }
-                
-                if (drawCount == 0)
-                {
-                    // this dago pile is empty
-                    // this also means that we could not drag anything off here,
-                    // so we don't need to handle the inDrag scenario here
-                    HPEN hOldPen = (HPEN)SelectObject(hdc, hDashPen);
-                    HBRUSH prevBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
-                    Rectangle(
-                        hdc,
-                        dpos.left,
-                        dpos.top,
-                        dpos.right,
-                        dpos.bottom
-                    );
-
-                    SelectObject(hdc, prevBrush);
-                    SelectObject(hdc, hOldPen);
-                }
-                else
-                {
-                    // the stack
-                    for (int i = 0; i < drawCount; ++i)
-                    {
-                        const auto& dpileCard = dpile.pile[i];
-
-                        cdtDraw(
-                            hdc,
-                            dpos.left,
-                            dpos.top + i * dist,
-                            i < dpile.uncoveredFrom ? gameState.backside : dpileCard,
-                            0,
-                            0
-                        );
-                    }
-                }
-            }
-
-            // the stockpile - last so it is on top of everything else
-            if (gameState.stockpile.uncovered == -1)
-            {
-                // the empty stack is rendered as a card back because
-                // that's the joker hiding under there
-                cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
+                PaintGame(hdc, &ps);
             }
             else
             {
-                const auto& uncoveredCard = gameState.stockpile.pile[gameState.stockpile.uncovered];
-
-                if (hasCapturedTheMouseToDragCards && cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0))
-                {
-                    // if the card being dragged is already off the pile, even slightly,
-                    // only then we draw the next card (or the empty pile indication) underneath
-                    if (gameState.stockpile.numCardsOnPile == 1)
-                    {
-                        // the empty stack is rendered as a card back because
-                        // that's the joker hiding there at the bottom
-                        cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
-                    }
-                    else if (gameState.stockpile.numCardsOnPile > 1)
-                    {
-                        // > 1 because the card currently being dragged, still counts as top of the pile until it is placed
-                        int nextStockpileIndex = gameState.stockpile.uncovered + 1;
-
-                        if (nextStockpileIndex == gameState.stockpile.numCardsOnPile)
-                        {
-                            nextStockpileIndex = 0;
-                        }
-
-                        const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
-
-                        cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
-                        cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
-                    }
-                }
-                else
-                {
-                    cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, uncoveredCard, 1, 0);
-                }
+                PaintDance(hdc, &ps);
             }
 
-            SelectObject(hdc, oldBrush);
-            DeleteObject(hDashPen);
             BitBlt(rawDc, 0, 0, width, height, hdc, 0, 0, SRCCOPY);
             DeleteObject(memBitmap);
             DeleteDC(hdc);
@@ -1316,7 +1177,162 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-bool Won()
+void PaintGame(HDC hdc, PAINTSTRUCT* ps)
+{
+    HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
+
+    // draw selection indicator
+    if (currentDagopi != -1)
+    {
+        HPEN selPen = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNSHADOW));
+        HPEN prevOutline = (HPEN)SelectObject(hdc, selPen);
+        HBRUSH prevFill = (HBRUSH)SelectObject(hdc, GetSysColorBrush(COLOR_HIGHLIGHT));
+
+        const auto& dagoPos = gameState.dagoPiles[currentDagopi].pos;
+        const auto& halfDist = dist / 2;
+        const auto& centerX = dagoPos.left + (dagoPos.right - dagoPos.left) / 2;
+        const auto& centerY = dagoPos.top - halfDist;
+        POINT vertices[] = {
+            {centerX - dist, centerY - 3},
+            {centerX + dist, centerY - 3},
+            {centerX, centerY + 3}
+        };
+
+        Polygon(hdc, vertices, sizeof(vertices) / sizeof(vertices[0]));
+        SelectObject(hdc, prevOutline);
+        SelectObject(hdc, prevFill);
+        DeleteObject(selPen);
+    }
+
+    // prepare brush for pile borders
+    HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, GetSysColorBrush(GRAY_BRUSH));
+
+    for (int pi = 0; pi < 7; ++pi)
+    {
+        // the target piles
+        if (pi < 4)
+        {
+            const auto& tpile = gameState.targetPiles[pi];
+            const auto& tpos = tpile.pos;
+
+            if (tpile.numCardsOnPile == 0)
+            {
+                // this target pile is empty
+                Rectangle(
+                    hdc,
+                    tpos.left,
+                    tpos.top,
+                    tpos.right,
+                    tpos.bottom
+                );
+            }
+            else
+            {
+                // we only draw the visible top card. the others are considered to be beneath it and covered
+                const auto& tpileCard = tpile.pile[tpile.numCardsOnPile - 1];
+
+                cdtDraw(hdc, tpos.left, tpos.top, tpileCard, 0, 0);
+            }
+        }
+
+        // the dagobert piles
+        const auto& dpile = gameState.dagoPiles[pi];
+        const auto& dpos = dpile.pos;
+
+        // first determine the not dragged part
+        const auto& inDrag = hasCapturedTheMouseToDragCards && !cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0);
+        auto drawCount = dpile.numCardsOnPile;
+
+        if (inDrag && cardsBeingDragged.pile == &dpile)
+        {
+            drawCount -= cardsBeingDragged.index; // TODO: likely not correct wrt to index vs count
+        }
+
+        if (drawCount == 0)
+        {
+            // this dago pile is empty
+            // this also means that we could not drag anything off here,
+            // so we don't need to handle the inDrag scenario here
+            HPEN hOldPen = (HPEN)SelectObject(hdc, hDashPen);
+            HBRUSH prevBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
+            Rectangle(
+                hdc,
+                dpos.left,
+                dpos.top,
+                dpos.right,
+                dpos.bottom
+            );
+
+            SelectObject(hdc, prevBrush);
+            SelectObject(hdc, hOldPen);
+        }
+        else
+        {
+            // the stack
+            for (int i = 0; i < drawCount; ++i)
+            {
+                const auto& dpileCard = dpile.pile[i];
+
+                cdtDraw(
+                    hdc,
+                    dpos.left,
+                    dpos.top + i * dist,
+                    i < dpile.uncoveredFrom ? gameState.backside : dpileCard,
+                    0,
+                    0
+                );
+            }
+        }
+    }
+
+    // the stockpile - last so it is on top of everything else
+    if (gameState.stockpile.uncovered == -1)
+    {
+        // the empty stack is rendered as a card back because
+        // that's the joker hiding under there
+        cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
+    }
+    else
+    {
+        const auto& uncoveredCard = gameState.stockpile.pile[gameState.stockpile.uncovered];
+
+        if (hasCapturedTheMouseToDragCards && cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0))
+        {
+            // if the card being dragged is already off the pile, even slightly,
+            // only then we draw the next card (or the empty pile indication) underneath
+            if (gameState.stockpile.numCardsOnPile == 1)
+            {
+                // the empty stack is rendered as a card back because
+                // that's the joker hiding there at the bottom
+                cdtDraw(hdc, dist, dist, gameState.backside, 1, 0);
+            }
+            else if (gameState.stockpile.numCardsOnPile > 1)
+            {
+                // > 1 because the card currently being dragged, still counts as top of the pile until it is placed
+                int nextStockpileIndex = gameState.stockpile.uncovered + 1;
+
+                if (nextStockpileIndex == gameState.stockpile.numCardsOnPile)
+                {
+                    nextStockpileIndex = 0;
+                }
+
+                const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
+
+                cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
+                cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
+            }
+        }
+        else
+        {
+            cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, uncoveredCard, 1, 0);
+        }
+    }
+
+    SelectObject(hdc, oldBrush);
+    DeleteObject(hDashPen);
+}
+
+bool Won(HWND hWnd)
 {
     for (int ti = 0; ti < 4; ++ti)
     {
@@ -1325,12 +1341,15 @@ bool Won()
             return false;
         }
 
-        if (GetRank(gameState.targetPiles[ti].pile[12]) != 0)
+        if (GetRank(gameState.targetPiles[ti].pile[12]) != Cards::LaubKinigl)
         {
-            // 0...asslikum: must be on top
             return false;
         }
     }
+
+    ClearUndoRedo(hWnd);
+    ResetDirty(hWnd);
+    Dance(hWnd);
 
     return true;
 }
@@ -2279,7 +2298,7 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
 
         InvalidateRect(hWnd, &targetPile, false);
 
-        if (Won())
+        if (Won(hWnd))
         {
             // HOORAY
         }
@@ -2403,7 +2422,7 @@ bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
 
     InvalidateRect(hWnd, &targetPile, false);
 
-    if (Won())
+    if (Won(hWnd))
     {
         // HOORAY
     }
@@ -2645,3 +2664,60 @@ int GetRank(Cards card)
     return -1;
 }
 
+void Dance(HWND hWnd)
+{
+    MSG msg;
+    winningAnimationStage = 1;
+
+    while (true)
+    {
+        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                break;
+            }
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        if (msg.message == WM_QUIT)
+        {
+            PostMessage(hWnd, WM_QUIT, 0, 0);
+
+            break;
+        }
+
+        // animate continuously in 30 fps
+        InvalidateRect(hWnd, NULL, false);
+        ++winningAnimationTicks;
+    }
+}
+
+void PaintDance(HDC hdc, PAINTSTRUCT* ps)
+{
+    switch (winningAnimationStage)
+    {
+    case 1:
+        // 1. cards leave the building face down
+        cdtDraw(hdc, winningAnimationTicks / 10, winningAnimationTicks / 100, Cards::Joker, 0, 0);
+        break;
+
+    case 2:
+        // 2. cards parade face up
+        break;
+
+        // 3. cards dance
+    case 3:
+        break;
+
+        // 4. cards are shredded
+    case 4:
+        break;
+
+        // 5. card shreds play game of life until the board is empty or a still life ensues
+    case 5:
+        break;
+    }
+}

@@ -1291,12 +1291,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         break;
 
-    case WM_DESTROY:
+    case WM_CLOSE:
         if (!PromptToSaveChanges(hWnd))
         {
-            return true;
+            return 0;
         }
 
+        break;
+
+    case WM_DESTROY:
         SaveSettings();
         PostQuitMessage(0);
 
@@ -1839,7 +1842,16 @@ void Undo(HWND hWnd)
     undoBuffer.pop();
     EnableMenuItem(hMenu, ID_PLAY_UNDO, undoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
     EnableMenuItem(hMenu, ID_PLAY_REDO, redoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
-    SetDirty(hWnd);
+
+    if (undoBuffer.empty())
+    {
+        ResetDirty(hWnd);
+    }
+    else 
+    {
+        SetDirty(hWnd);
+    }
+
     InvalidateRect(hWnd, NULL, false);
 }
 
@@ -1896,9 +1908,9 @@ bool PromptToSaveChanges(HWND hWnd)
         return true;
     }
 
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEPROMPT), hWnd, PromptSave);
+    const auto& result = DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEPROMPT), hWnd, PromptSave);
     
-    return false;
+    return result != 0;
 }
 
 void UpdateTitle(HWND hWnd)

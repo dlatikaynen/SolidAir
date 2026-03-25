@@ -150,6 +150,11 @@
 #define IDS_ABOUT_LEGAL                 32907
 #define IDS_ABOUT_DEDICATION            32908
 #define IDS_ABOUT_GITHUB                32909
+#define IDS_SAVEPROMPT_TITLE            32910
+#define IDS_SAVEPROMPT_LABEL            32911
+#define IDS_SAVEPROMPT_SAVE             32912
+#define IDS_SAVEPROMPT_DONT_SAVE        32913
+#define IDS_CANCEL                      32914
 #define IDC_STATIC                      -1
 #define IDC_ABOUT_LABEL_ADDITIONAL_ARTWORK -1
 

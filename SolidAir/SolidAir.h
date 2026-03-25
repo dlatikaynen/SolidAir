@@ -42,6 +42,7 @@ bool CycleStockpile(HWND hWnd);
 bool PlaceStockpileOnDago(HWND hWnd, int pi);
 bool PlaceStockpileOnTarget(HWND hWnd, int pi);
 bool PlaceDagoOnTarget(HWND hWnd, int di, int ti);
+void AutoMoveToTarget(HWND hWnd);
 void RemoveFromStockpile(HWND hWnd);
 bool RemoveFromDagopile(HWND hWnd, int di);
 int ProposeMaximumMove(int fromIndex, int toIndex);

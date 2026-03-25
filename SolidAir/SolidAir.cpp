@@ -658,6 +658,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 SetSelectedDago(hWnd, -1);
             }
+            else if (isShiftPressed && (wParam == VK_OEM_5 || wParam == VK_SPACE))
+            {
+                // german layout: top left key left to the 1 (degree symbol)
+                // shift+space (or shift+°) means to move the first eligible card
+                // to the first target that is accepting it
+                AutoMoveToTarget(hWnd);
+            }
 
             if (newPi != -1)
             {
@@ -2371,6 +2378,33 @@ bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
     SetDirty(hWnd);
 
     return true;
+}
+
+void AutoMoveToTarget(HWND hWnd)
+{
+    // look at every uncovered card from left to right and check 
+    // if there is a target ready to take it. move it to the target if this is the case
+    for (int di = 0; di < 7; ++di)
+    {
+        auto& cP = gameState.dagoPiles[di];
+
+        if (cP.numCardsOnPile != 0 && cP.uncoveredFrom != -1 && cP.uncoveredFrom < cP.numCardsOnPile)
+        {
+            auto& cC = cP.pile[cP.numCardsOnPile - 1];
+
+            for (int ti = 0; ti < 4; ++ti)
+            {
+                auto& tP = gameState.targetPiles[ti];
+
+                if (CanPlaceCardOnTargetPile(cC, &tP))
+                {
+                    PlaceDagoOnTarget(hWnd, di, ti);
+ 
+                    return;
+                }
+            }
+        }
+    }
 }
 
 void SetSelectedDago(HWND hWnd, int dpIndex)

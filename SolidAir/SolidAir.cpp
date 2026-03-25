@@ -1537,7 +1537,8 @@ void LoadGame(HWND hWnd)
     }
 }
 
-void SaveGame(HWND hWnd, bool saveAs)
+// returns true if actually saved something, also if there is nothing new to be saved
+bool SaveGame(HWND hWnd, bool saveAs)
 {
     WCHAR title[MAX_LOADSTRING];
     WCHAR filter[MAX_LOADSTRING];
@@ -1568,15 +1569,22 @@ void SaveGame(HWND hWnd, bool saveAs)
             SaveGamestateToFile(hWnd, dialogInfo.lpstrFile);
             wcsncpy_s(lastSavedAsFilename, dialogInfo.lpstrFile, MAX_PATH);
         }
+        else 
+        {
+            // decided not to save
+            return false;
+        }
     }
     else if (!dirty)
     {
         // nothing new to save
-        return;
+        return true;
     }
 
     // repeated save, overwrite / append
     SaveGamestateToFile(hWnd, lastSavedAsFilename);
+
+    return true;
 }
 
 void PrepareSaveFileDialogFilter(OPENFILENAME* dialogInfo, WCHAR(&title)[MAX_LOADSTRING], WCHAR(&filter)[MAX_LOADSTRING], ULONG titleId)
@@ -1910,6 +1918,16 @@ bool PromptToSaveChanges(HWND hWnd)
 
     const auto& result = DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEPROMPT), hWnd, PromptSave);
     
+    if (result == 1)
+    {
+        // save now
+        if (!SaveGame(hWnd, false))
+        {
+            // canceled in save dialog, aborts as if we'd selected "cancel" here right away
+            return false;
+        }
+    }
+
     return result != 0;
 }
 

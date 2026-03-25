@@ -67,15 +67,21 @@ INT_PTR CALLBACK PromptSave(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         {
             const auto& cmd = LOWORD(wParam);
 
-            if (cmd == IDC_SAVEPROMPT_CANCEL)
+            if (cmd == IDC_SAVEPROMPT_SAVE)
             {
-                EndDialog(hDlg, 0);
+                EndDialog(hDlg, 1);
 
                 return (INT_PTR)TRUE;
             }
             else if (cmd == IDC_SAVEPROMPT_DONT_SAVE)
             {
-                EndDialog(hDlg, 1);
+                EndDialog(hDlg, -1);
+
+                return (INT_PTR)TRUE;
+            }
+            else if (cmd == IDC_SAVEPROMPT_CANCEL)
+            {
+                EndDialog(hDlg, 0);
 
                 return (INT_PTR)TRUE;
             }

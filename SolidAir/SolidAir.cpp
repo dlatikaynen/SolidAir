@@ -1316,6 +1316,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+bool Won()
+{
+    for (int ti = 0; ti < 4; ++ti)
+    {
+        if (gameState.targetPiles[ti].numCardsOnPile != 13)
+        {
+            return false;
+        }
+
+        if (GetRank(gameState.targetPiles[ti].pile[12]) != 0)
+        {
+            // 0...asslikum: must be on top
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void UncheckAllBackgroundMenuItems(HMENU hMenu, int check)
 {
     CheckMenuItem(hMenu, ID_CARDBACK_BLUEDOT, MF_UNCHECKED);
@@ -2259,7 +2278,15 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
         const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom };
 
         InvalidateRect(hWnd, &targetPile, false);
-        SetDirty(hWnd);
+
+        if (Won())
+        {
+            // HOORAY
+        }
+        else
+        {
+            SetDirty(hWnd);
+        }
 
         return true;
     }
@@ -2375,7 +2402,15 @@ bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
     const auto& targetPile = RECT{ tpPos.left, tpPos.top, tpPos.right, tpPos.bottom };
 
     InvalidateRect(hWnd, &targetPile, false);
-    SetDirty(hWnd);
+
+    if (Won())
+    {
+        // HOORAY
+    }
+    else 
+    {
+        SetDirty(hWnd);
+    }
 
     return true;
 }
@@ -2384,6 +2419,11 @@ void AutoMoveToTarget(HWND hWnd)
 {
     // look at every uncovered card from left to right and check 
     // if there is a target ready to take it. move it to the target if this is the case
+    // this does not look at the stockpile. so if there was a direct move from stock
+    // to target available, it is not executed by the automove function. this is a design
+    // decision which is utterly inconsistent and now as I'm writing this I realized that
+    // it is most likely illegal to move anything from stock to target without having
+    // a dagopile as a stopover anyway, at least by klondike rules. anyway.
     for (int di = 0; di < 7; ++di)
     {
         auto& cP = gameState.dagoPiles[di];

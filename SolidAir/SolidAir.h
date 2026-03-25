@@ -13,6 +13,7 @@ extern HINSTANCE hInst;
 ATOM RegisterWindowClass(HINSTANCE hInstance);
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND* createdHwnd);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+bool Won();
 void UncheckAllBackgroundMenuItems(HMENU hMenu, int check);
 void UncheckAllBkgColorMenuItems(HMENU hMenu, int check);
 void LoadSettings(HWND hWnd);

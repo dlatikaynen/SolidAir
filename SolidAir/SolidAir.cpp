@@ -2699,9 +2699,29 @@ void PaintDance(HDC hdc, PAINTSTRUCT* ps)
 {
     switch (winningAnimationStage)
     {
-    case 1:
-        // 1. cards leave the building face down
-        cdtDraw(hdc, winningAnimationTicks / 10, winningAnimationTicks / 100, Cards::Joker, 0, 0);
+        case 1:
+        {
+            // 1. cards leave the building face down
+            auto& pos = gameState.targetPiles[0].pos;
+
+            for (int i = 1; i < 10000; i += 12)
+            {
+                if (i > winningAnimationTicks)
+                {
+                    break;
+                }
+
+                cdtDraw(
+                    hdc,
+                    pos.left - 1.6 * sqrt(i),
+                    pos.top + i,
+                    Cards::Joker,
+                    0,
+                    0
+                );
+            }
+        }
+     
         break;
 
     case 2:

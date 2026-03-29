@@ -42,10 +42,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\clubs-asslikum.png">
+    <Image Include="res\laub-asslikum.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="res\clubs-kinigl.png">
+    <Image Include="res\laub-kinigl.png">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="res\pik-8.png">

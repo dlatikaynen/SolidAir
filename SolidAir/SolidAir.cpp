@@ -2704,21 +2704,32 @@ void PaintDance(HDC hdc, PAINTSTRUCT* ps)
             // 1. cards leave the building face down
             auto& pos = gameState.targetPiles[0].pos;
 
-            for (int i = 1; i < 10000; i += 12)
+            for (int i = 1; i < 10000; ++i)
             {
                 if (i > winningAnimationTicks)
                 {
+                    cdtDraw(
+                        hdc,
+                        pos.left - 10 * sqrt(i * 12 + 10),
+                        pos.top + i * 12,
+                        Cards::Joker,
+                        0,
+                        0
+                    );
+
                     break;
                 }
-
-                cdtDraw(
-                    hdc,
-                    pos.left - 1.6 * sqrt(i),
-                    pos.top + i,
-                    Cards::Joker,
-                    0,
-                    0
-                );
+                else
+                {
+                    cdtDraw(
+                        hdc,
+                        pos.left - 10 * sqrt(i * 12 + 10),
+                        pos.top + i * 12,
+                        gameState.backside,
+                        0,
+                        0
+                    );
+                }
             }
         }
      

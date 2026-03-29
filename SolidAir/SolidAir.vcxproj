@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="audio.h" />
     <ClInclude Include="DialogAbout.h" />
     <ClInclude Include="DialogSavePrompt.h" />
     <ClInclude Include="framework.h" />
@@ -142,6 +143,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="audo.cpp" />
     <ClCompile Include="DialogAbout.cpp" />
     <ClCompile Include="DialogSavePrompt.cpp" />
     <ClCompile Include="schema.cpp" />
@@ -162,8 +164,8 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="560446__migfus20__happy-background-music.mp3">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DeploymentContent>
     </Media>
   </ItemGroup>
   <ItemGroup>

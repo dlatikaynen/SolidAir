@@ -1,6 +1,9 @@
 #define SECURITY_WIN32
+#define SDL_MAIN_USE_CALLBACKS 1 
+
 #include "framework.h"
 #include "SolidAir.h"
+#include "audio.h"
 #include "DialogAbout.h"
 #include "DialogSavePrompt.h"
 #include <stack>
@@ -15,7 +18,6 @@
 #include <shellapi.h>
 #include <commctrl.h>
 #include <Security.h>
-#define SDL_MAIN_USE_CALLBACKS 1 
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
 #pragma comment (lib,"Secur32.lib")
@@ -28,7 +30,6 @@
 constexpr time_t DRAG_TRESHOLD = 469; // milliseconds
 constexpr const wchar_t* SettingsFilename = L"solidair.ligma";
 constexpr const wchar_t* SavegameExtension = L"*.solidair";
-constexpr const char* BackgroundMusicFile = "560446__migfus20__happy-background-music.mp3";
 
 HINSTANCE hInst;
 WCHAR szTitle[MAX_LOADSTRING];
@@ -64,9 +65,9 @@ std::stack<GameState> undoBuffer;
 std::stack<GameState> redoBuffer;
 
 // audio
-MIX_Audio* load_audio(const char* fname);
 bool isAudioAvailable = false;
 static MIX_Mixer* mixer = NULL;
+static void* audioData1 = NULL;
 static MIX_Track* track1 = NULL;
 
 // mouse operation
@@ -168,7 +169,7 @@ int APIENTRY wWinMain(
             isAudioAvailable = false;
         }
 
-        music = load_audio(BackgroundMusicFile);
+        music = LoadBackgroundMusic(mixer, IDR_MUSIC_HAPPY, &audioData1);
         if (!music) 
         {
             isAudioAvailable = false;
@@ -297,23 +298,6 @@ int APIENTRY wWinMain(
     }
 
     return (int)msg.wParam;
-}
-
-static MIX_Audio* load_audio(const char* fname)
-{
-    char* path = NULL;
-    MIX_Audio* audio;
-    
-    //SDL_asprintf(&path, "%s%s", SDL_GetBasePath(), fname);
-    audio = MIX_LoadAudio(mixer, fname, false);
-    if (!audio) 
-    {
-        SDL_Log("Couldn't load %s: %s", path, SDL_GetError());
-    }
-
-    SDL_free(path);
-    
-    return audio;
 }
 
 ATOM RegisterWindowClass(HINSTANCE hInstance)

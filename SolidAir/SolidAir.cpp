@@ -1,3 +1,8 @@
+/*
+Registry.SetValue(@"HKEY_CURRENT_USER\Software\Classes\en-software.solidair.v1\shell\open\command", null, @"c:\path\to\SolidAir.exe \"%1\"");
+Registry.SetValue(@"HKEY_CURRENT_USER\Software\Classes\.blerg", null, "en-software.solidair.v1");
+*/
+
 #define SECURITY_WIN32
 #define SDL_MAIN_USE_CALLBACKS 1 
 

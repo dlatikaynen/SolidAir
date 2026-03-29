@@ -2,7 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs/cards
+/.vs/*
 /SolidAir/x64/Debug
 /x64/Debug
 /SolidAir/x64/Release
@@ -11,3 +11,5 @@
 /SolidAir/solidair.ligma
 /SolidAir/SDL3_mixer
 /SolidAir/SDL3
+**.lib
+**.dll

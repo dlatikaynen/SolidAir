@@ -45,12 +45,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_BC2EA4A39E724A74B27A33B7EC2C13BC"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_C2028AF422634A7082ACAA92761FA002"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -85,6 +79,14 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+            }
         }
         "Release"
         {
@@ -101,6 +103,14 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+            }
         }
     }
     "Deployable"
@@ -213,7 +223,7 @@
             "SharedLegacy" = "11:FALSE"
             "PackageAs" = "3:1"
             "Register" = "3:1"
-            "Exclude" = "11:FALSE"
+            "Exclude" = "11:TRUE"
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
@@ -234,26 +244,6 @@
             "PackageAs" = "3:1"
             "Register" = "3:1"
             "Exclude" = "11:FALSE"
-            "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_BC2EA4A39E724A74B27A33B7EC2C13BC"
-            {
-            "SourcePath" = "8:..\\SolidAir\\itchio-banner.png"
-            "TargetName" = "8:itchio-banner.png"
-            "Tag" = "8:"
-            "Folder" = "8:_A14C9E9DFE6C4F22B59864FD69E41268"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:TRUE"
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
@@ -374,7 +364,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:SolidAir"
         "ProductCode" = "8:{3875FC41-50EE-49F7-9172-373E66EAB27C}"
-        "PackageCode" = "8:{74EF15CB-D716-4DB8-93CF-8DA6E162CD88}"
+        "PackageCode" = "8:{3797F13A-840E-417F-80F4-D226971FE7D0}"
         "UpgradeCode" = "8:{5B040F99-2617-4868-9DA4-3DD8526793F8}"
         "AspNetVersion" = "8:"
         "RestartWWWService" = "11:FALSE"
@@ -702,7 +692,6 @@
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
                             "Setting" = "3:2"
-                            "Value" = "8:_BC2EA4A39E724A74B27A33B7EC2C13BC"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "CopyrightWarning"

@@ -1172,6 +1172,38 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
 {
     HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
 
+    // is there a text on the table?
+    if (commentaryOn)
+    {
+        HFONT nameFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        HFONT prevFont1 = (HFONT)SelectObject(hdc, nameFont);
+
+        auto nameRect = RECT{
+            gameState.stockpile.pos.right + dist + 2,
+            gameState.stockpile.pos.top,
+            gameState.targetPiles[0].pos.left - dist - 2,
+            gameState.stockpile.pos.bottom - dist / 2 - 1
+        };
+
+        auto textRect = RECT{
+            gameState.stockpile.pos.right + dist + 2,
+            gameState.stockpile.pos.top + dist / 2 + 1,
+            gameState.targetPiles[0].pos.left - dist - 2,
+            gameState.stockpile.pos.bottom - dist / 2 - 1
+        };
+
+        WCHAR name[MAX_LOADSTRING] = {};
+        cdtName(hdc, (int)Cards::KaroKinigl, 0, (LPWCH)&name);
+        SetTextColor(hdc, RGB(0xfe, 0, 0));
+        DrawText(hdc, name, -1, &nameRect, DT_CENTER);
+        HFONT textFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+        SelectObject(hdc, textFont);
+        SetTextColor(hdc, gameState.backgroundColor == BackgroundColors::Black ? RGB(0xec, 0xec, 0xec) : RGB(3, 3, 3));
+        DrawText(hdc, L"I can't see a thing.\nI'll open this one.", -1, &textRect, DT_CENTER);
+
+        SelectObject(hdc, prevFont1);
+    }
+
     // draw selection indicator
     if (currentDagopi != -1)
     {

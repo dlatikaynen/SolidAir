@@ -153,7 +153,7 @@ typedef struct {
 typedef struct {
 	bool fromStockpile;
 	DagoPile* pile; // nullptr if from stockpile
-	int index;
+	int index; // the index of the z-wise lowest, y-wise topmost card being grabbed
 } CardsBeingHit;
 
 #pragma pack (1)

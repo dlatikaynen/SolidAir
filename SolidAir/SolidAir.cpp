@@ -1236,13 +1236,13 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
 
         if (inDrag && cardsBeingDragged.pile == &dpile)
         {
-            drawCount -= cardsBeingDragged.index; // TODO: likely not correct wrt to index vs count
+            drawCount = cardsBeingDragged.index;
         }
 
         if (drawCount == 0)
         {
             // this dago pile is empty
-            // this also means that we could not drag anything off here,
+            // this also means that we could not drag anything off her,
             // so we don't need to handle the inDrag scenario here
             HPEN hOldPen = (HPEN)SelectObject(hdc, hDashPen);
             HBRUSH prevBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
@@ -1276,7 +1276,7 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
         }
     }
 
-    // the stockpile - last so it is on top of everything else
+    // the stockpile - last so it is on top of everything else (except a dragged dagosubpile)
     if (gameState.stockpile.uncovered == -1)
     {
         // the empty stack is rendered as a card back because
@@ -1316,6 +1316,25 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
         else
         {
             cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, uncoveredCard, 1, 0);
+        }
+    }
+
+    // finally, a dragged dago-subpile
+    if (hasCapturedTheMouseToDragCards && !cardsBeingDragged.fromStockpile && (dragOffset.x != 0 || dragOffset.y != 0))
+    {
+        for (int i = cardsBeingDragged.index; i < cardsBeingDragged.pile->numCardsOnPile; ++i)
+        {
+            const auto& dpileCard = cardsBeingDragged.pile->pile[i];
+            const auto& dpos = cardsBeingDragged.pile->pos;
+
+            cdtDraw(
+                hdc,
+                dpos.left + dragOffset.x,
+                dpos.top + i * dist + dragOffset.y,
+                dpileCard,
+                0,
+                0
+            );
         }
     }
 
@@ -2139,15 +2158,56 @@ bool HitTest(POINT *p, CardsBeingHit* cards)
 
     if (PtInRect(&stockPile, *p))
     {
-        // is there a card on the stockpile?
+        // I cannot see a thing
         if (gameState.stockpile.numCardsOnPile != 0)
         {
-            // take this one!
+            // I will open this one!
             cards->fromStockpile = true;
             cards->pile = nullptr;
             cards->index = gameState.stockpile.uncovered;
 
             return true;
+        }
+
+        // no need to check further
+        return false;
+    }
+
+    // (2) is it a top card or a sub-dagopile (various rectangles of the exposed "top grab handles" to test)
+    for (int i = 0; i < 7; ++i)
+    {
+        const auto& dPile = gameState.dagoPiles[i];
+        const auto &dpPos = dPile.pos;
+        const auto dagoColumn = RECT{ dpPos.left, dpPos.top, dpPos.right, dpPos.bottom + (dPile.numCardsOnPile - 1) * dist};
+
+        if (PtInRect(&dagoColumn, *p))
+        {
+            for (int c = dPile.numCardsOnPile - 1; c >= 0; --c)
+            {
+                auto grabRect = RECT{ dpPos.left, dpPos.top + c * dist, dpPos.right, 0 };
+
+                if (c == (dPile.numCardsOnPile - 1))
+                {
+                    // the bottommost card is exposed, its grab area is the entire card face
+                    grabRect.bottom = dpPos.bottom + c * dist;
+                }
+                else
+                {
+                    // all the others are covered underneath except for their "header"
+                    grabRect.bottom = grabRect.top + dist;
+                }
+
+                if (PtInRect(&grabRect, *p))
+                {
+                    cards->pile = &gameState.dagoPiles[i];
+                    cards->index = c;
+
+                    return true;
+                }
+            }
+
+            // no need to look further
+            return false;
         }
     }
 
@@ -2546,8 +2606,7 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
         return IsCardAdjacent(Cards::Empty, card, CardColorMatchMode::Ignore);
     }
 
-    // cannot place on a covered pile, and must be adjacent to fit
-    if (pile->uncoveredFrom != -1)
+    // cannot place on a covered pile, and must be adjacent to fit    if (pile->uncoveredFrom != -1)
     {
         if (pile->uncoveredFrom < pile->numCardsOnPile)
         {

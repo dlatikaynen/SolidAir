@@ -59,6 +59,11 @@ GameState gameState = {};
 bool winningAnimationStage = 0;
 long winningAnimationTicks = 0;
 
+// commentary
+bool isTalking = false;
+WCHAR name[MAX_LOADSTRING] = {};
+WCHAR quip[MAX_LOADSTRING] = {};
+
 // gamestate is so cheap that we can do an undo buffer as a deque of snapshots.
 // a deque... get it?
 std::stack<GameState> undoBuffer;
@@ -1127,6 +1132,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case ID_SETTINGS_COMMENTARY:
                 commentaryOn = !commentaryOn;
                 CheckMenuItem(hMenu, ID_SETTINGS_COMMENTARY, commentaryOn ? MF_CHECKED : MF_UNCHECKED);
+                RedrawConversation(hWnd);
 
                 break;
 
@@ -1168,12 +1174,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+void Quip(HWND hWnd, Cards speaker, UINT resId, bool invalidateSeparately)
+{
+    cdtName(nullptr, (int)speaker, 0, (LPWCH)&name);
+    LoadString(hInst, resId, (LPWCH)&quip, MAX_LOADSTRING);
+    isTalking = true;
+
+    if (invalidateSeparately)
+    {
+        RedrawConversation(hWnd);
+    }
+}
+
+void Silentium(HWND hWnd, bool invalidateSeparately)
+{
+    isTalking = false;
+
+    if (invalidateSeparately)
+    {
+        RedrawConversation(hWnd);
+    }
+}
+
+void RedrawConversation(HWND hWnd)
+{
+    auto convoRect = RECT{
+        gameState.stockpile.pos.right + dist + 1,
+        gameState.stockpile.pos.top,
+        gameState.targetPiles[0].pos.left - dist - 1,
+        gameState.stockpile.pos.bottom - dist / 2
+    };
+
+    InvalidateRect(hWnd, &convoRect, false);
+}
+
 void PaintGame(HDC hdc, PAINTSTRUCT* ps)
 {
-    HPEN hDashPen = CreatePen(PS_DASH, 1, RGB(0, 0, 0));
+    HPEN hDashPen = CreatePen(
+        PS_DASH,
+        1,
+        gameState.backgroundColor == BackgroundColors::Black ? RGB(0x6f, 0x6f, 0x6f) : RGB(0, 0, 0)
+    );
 
     // is there a text on the table?
-    if (commentaryOn)
+    if (commentaryOn && isTalking)
     {
         HFONT nameFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
         HFONT prevFont1 = (HFONT)SelectObject(hdc, nameFont);
@@ -1192,14 +1236,12 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
             gameState.stockpile.pos.bottom - dist / 2 - 1
         };
 
-        WCHAR name[MAX_LOADSTRING] = {};
-        cdtName(hdc, (int)Cards::KaroKinigl, 0, (LPWCH)&name);
         SetTextColor(hdc, RGB(0xfe, 0, 0));
         DrawText(hdc, name, -1, &nameRect, DT_CENTER);
         HFONT textFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
         SelectObject(hdc, textFont);
         SetTextColor(hdc, gameState.backgroundColor == BackgroundColors::Black ? RGB(0xec, 0xec, 0xec) : RGB(3, 3, 3));
-        DrawText(hdc, L"I can't see a thing.\nI'll open this one.", -1, &textRect, DT_CENTER);
+        DrawText(hdc, quip, -1, &textRect, DT_CENTER);
 
         SelectObject(hdc, prevFont1);
     }
@@ -1593,6 +1635,18 @@ void NewGame(HWND hWnd)
     InitNewDagobert();
     ResetDirty(hWnd);
     ClearUndoRedo(hWnd);
+    Silentium(hWnd, false);
+
+    if (commentaryOn && gameState.stockpile.numCardsOnPile > 0 && gameState.stockpile.uncovered == -1)
+    {
+        const auto& topCard = gameState.stockpile.pile[0];
+        const auto& topRank = GetRank(topCard);
+
+        if (topRank >= Cards::LaubBublikum && topRank <= Cards::LaubKinigl)
+        {
+            Quip(hWnd, topCard, IDS_QUOTH_DARK, false);
+        }
+    }
 
     if (hWnd != nullptr)
     {
@@ -1901,6 +1955,9 @@ void InitNewDagobert()
 
 void PushState(HWND hWnd)
 {
+    // any move resets the previous commentary, if any
+    Silentium(hWnd, true);
+
     undoBuffer.push(gameState);
     if (!redoBuffer.empty())
     {

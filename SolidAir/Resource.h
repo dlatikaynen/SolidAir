@@ -135,11 +135,6 @@
 #define IDS_PLAY                        32873
 #define IDS_PLAY_UNDO                   32874
 #define IDS_PLAY_REDO                   32875
-#define IDS_COMMENTARY_0010             32876
-#define IDS_STRING106                   32877
-#define IDS_STRING107                   32878
-#define IDS_STRING108                   32879
-#define IDS_STRING110                   32880
 #define IDS_ABOUT_DIALOG_TITLE          32900
 #define IDS_ABOUT_PRODUCT               32901
 #define IDS_ABOUT_COPYRIGHT             32902
@@ -155,6 +150,12 @@
 #define IDS_SAVEPROMPT_SAVE             32912
 #define IDS_SAVEPROMPT_DONT_SAVE        32913
 #define IDS_CANCEL                      32914
+#define IDS_QUOTH_DARK                  32915
+#define IDS_QUOTE_WHEE                  32916
+#define IDS_QUOTH_MARGIN                32917
+#define IDS_QUOTH_LAYMAN                32918
+#define IDS_QUOTH_HAMSTER               32919
+#define IDS_QUOTH_FACEDOWN              32920
 #define IDC_STATIC                      -1
 #define IDC_ABOUT_LABEL_ADDITIONAL_ARTWORK -1
 

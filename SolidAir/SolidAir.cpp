@@ -694,16 +694,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
-                    // 1..7 uncover the dagopile if covered
+                    // 1..7 uncover the dagopile if covered, do nothing else in this case
                     // 1..7 select the dagopile as the drag source if already uncovered and not empty
                     // 1..7 place the possible move from a previously selected, different dagopile there,
                     //      if the source is then empty, set the target as the new selection, otherwise
-                    //      uncover, otherwise leave the selection at the source
+                    //      leave the selection at the source
                     auto& dP = gameState.dagoPiles[newPi];
                     bool mustRedraw = false;
 
                     if (dP.uncoveredFrom >= dP.numCardsOnPile && dP.numCardsOnPile > 0)
                     {
+                        // the act of uncovering something is a move on its own
+                        PushState(hWnd);
+
                         dP.uncoveredFrom = dP.numCardsOnPile - 1;
                         mustRedraw = true;
                     }
@@ -721,9 +724,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                             if (grabAt != -1)
                             {
-                                if (Move(hWnd, currentDagopi, grabAt, newPi))
+                                // this prevents moving immediately after uncovering
+                                if (!mustRedraw)
                                 {
-                                    mustRedraw = false;
+                                    if (Move(hWnd, currentDagopi, grabAt, newPi))
+                                    {
+                                        mustRedraw = false;
+                                    }
                                 }
                             }
                             else
@@ -2540,7 +2547,6 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
     }
 
     // cannot place on a covered pile, and must be adjacent to fit
-    // TODO: test this thoroughly
     if (pile->uncoveredFrom != -1)
     {
         if (pile->uncoveredFrom < pile->numCardsOnPile)
@@ -2551,14 +2557,6 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
                 CardColorMatchMode::MustDifferInColor
             );
         }
-        else
-        {
-            SDL_Log("top card not uncovered"); // remove after test
-        }
-    }
-    else
-    {
-        SDL_Log("pile not uncovered at all"); // remove after test
     }
 
     return false;

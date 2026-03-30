@@ -2535,16 +2535,33 @@ bool CanPlaceCardOnDagoPile(Cards card, DagoPile* pile)
 {
     if (pile->numCardsOnPile == 0)
     {
+        // only a king can be placed on an empty pile
         return IsCardAdjacent(Cards::Empty, card, CardColorMatchMode::Ignore);
     }
 
     // cannot place on a covered pile, and must be adjacent to fit
-    // TODO: there appears to be a bug, I had been able to place a queen on a single-card pile with (supposedly) a covered king
-    return pile->uncoveredFrom < pile->numCardsOnPile && IsCardAdjacent(
-        card,
-        pile->pile[pile->numCardsOnPile - 1],
-        CardColorMatchMode::MustDifferInColor
-    );
+    // TODO: test this thoroughly
+    if (pile->uncoveredFrom != -1)
+    {
+        if (pile->uncoveredFrom < pile->numCardsOnPile)
+        {
+            return IsCardAdjacent(
+                card,
+                pile->pile[pile->numCardsOnPile - 1],
+                CardColorMatchMode::MustDifferInColor
+            );
+        }
+        else
+        {
+            SDL_Log("top card not uncovered"); // remove after test
+        }
+    }
+    else
+    {
+        SDL_Log("pile not uncovered at all"); // remove after test
+    }
+
+    return false;
 }
 
 bool CanPlaceCardOnTargetPile(Cards card, TargetPile* pile)

@@ -238,16 +238,44 @@ extern "C" BOOL __declspec(dllexport) cdtName(HDC hdc, int card, int type, wchar
         wcsncpy_s(name, 5, L"♣-10", 5);
         break;
 
-    case 10: 
-        wcsncpy_s(name, 9, L"Lancelot", 9);
+    case 10:
+        if (type == 1)
+        {
+            wcsncpy_s(name, 9, L"Lanzelot", 9);
+        }
+        if (type == 3)
+        {
+            wcsncpy_s(name, 9, L"Ланселот", 9);
+        }
+        else
+        {
+            wcsncpy_s(name, 9, L"Lancelot", 9);
+        }
+
         break;
 
     case 11: 
-        wcsncpy_s(name, 7, L"Helena", 7);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 7, L"Гелена", 7);
+        }
+        else
+        {
+            wcsncpy_s(name, 7, L"Helena", 7);
+        }
+
         break;
 
     case 12: 
-        wcsncpy_s(name, 10, L"Alexander", 10);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 10, L"Олександр", 10);
+        }
+        else
+        {
+            wcsncpy_s(name, 10, L"Alexander", 10);
+        }
+
         break;
 
     case 13:
@@ -291,15 +319,43 @@ extern "C" BOOL __declspec(dllexport) cdtName(HDC hdc, int card, int type, wchar
         break;
 
     case 23: 
-        wcsncpy_s(name, 7, L"Hector", 7);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 7, L"Гектор", 7);
+        }
+        else if (type == 1)
+        { 
+            wcsncpy_s(name, 7, L"Hektor", 7);
+        }
+        else 
+        {
+            wcsncpy_s(name, 7, L"Hector", 7);
+        }
+
         break;
 
     case 24: 
-        wcsncpy_s(name, 7, L"Rachel", 7);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 7, L"Рейчел", 7);
+        }
+        else
+        {
+            wcsncpy_s(name, 7, L"Rachel", 7);
+        }
+
         break;
 
     case 25: 
-        wcsncpy_s(name, 7, L"Julius", 7);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 6, L"Юліус", 6);
+        }
+        else 
+        {
+            wcsncpy_s(name, 7, L"Julius", 7);
+        }
+
         break;
 
     case 26: 
@@ -343,15 +399,43 @@ extern "C" BOOL __declspec(dllexport) cdtName(HDC hdc, int card, int type, wchar
         break;
 
     case 36: 
-        wcsncpy_s(name, 8, L"Étienne", 8);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 6, L"Етьєн", 6);
+        }
+        else
+        {
+            wcsncpy_s(name, 8, L"Étienne", 8);
+        }
+
         break;
 
     case 37: 
-        wcsncpy_s(name, 7, L"Jeanne", 7);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 6, L"Жанна", 6);
+        }
+        else
+        {
+            wcsncpy_s(name, 7, L"Jeanne", 7);
+        }
+
         break;
 
     case 38: 
-        wcsncpy_s(name, 8, L"Charles", 8);
+        if (type == 1)
+        {
+            wcsncpy_s(name, 5, L"Karl", 5);
+        }
+        else if (type == 3)
+        {
+            wcsncpy_s(name, 5, L"Карл", 5);
+        }
+        else
+        {
+            wcsncpy_s(name, 8, L"Charles", 8);
+        }
+
         break;
 
     case 39: 
@@ -395,19 +479,51 @@ extern "C" BOOL __declspec(dllexport) cdtName(HDC hdc, int card, int type, wchar
         break;
 
     case 49: 
-        wcsncpy_s(name, 6, L"Ogier", 6);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 5, L"Ож'є", 5);
+        }
+        else
+        {
+            wcsncpy_s(name, 6, L"Ogier", 6);
+        }
+
         break;
 
     case 50: 
-        wcsncpy_s(name, 7, L"Pallas", 7);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 8, L"Паллада", 8);
+        }
+        else
+        {
+            wcsncpy_s(name, 7, L"Pallas", 7);
+        }
+
         break;
 
     case 51:
-        wcsncpy_s(name, 6, L"David", 6);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 6, L"Девід", 6);
+        }
+        else
+        {
+            wcsncpy_s(name, 6, L"David", 6);
+        }
+
         break;
 
     case 52: 
-        wcsncpy_s(name, 6, L"Joker", 6);
+        if (type == 3)
+        {
+            wcsncpy_s(name, 7, L"Джокер", 7);
+        }
+        else
+        {
+            wcsncpy_s(name, 6, L"Joker", 6);
+        }
+
         break;
 
     default:

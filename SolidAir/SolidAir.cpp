@@ -270,7 +270,6 @@ int APIENTRY wWinMain(
     }
     else
     {
-
         EnableMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, MF_DISABLED);
         EnableMenuItem(hMenu, ID_SETTINGS_SOUNDFX, MF_DISABLED);
     }
@@ -1740,7 +1739,7 @@ void LoadSettings(HWND hWnd)
     }
 
     CheckMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, musicOn ? MF_CHECKED : MF_UNCHECKED);
-    CheckMenuItem(hMenu, ID_SETTINGS_SOUNDFX, soundFxOn ? MF_CHECKED : MF_UNCHECKED);
+    // TODO: CheckMenuItem(hMenu, ID_SETTINGS_SOUNDFX, soundFxOn ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(hMenu, ID_SETTINGS_COMMENTARY, commentaryOn ? MF_CHECKED : MF_UNCHECKED);
 }
 
@@ -2306,6 +2305,7 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     ModifyMenu(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_BACKGROUNDMUSIC, szCaption);
     LoadStringW(hInst, IDS_SETTINGS_SOUNDFX, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS_SOUNDFX, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_SOUNDFX, szCaption);
+    EnableMenuItem(hMenu, ID_SETTINGS_SOUNDFX, MF_DISABLED); // TODO: not yet supported
     LoadStringW(hInst, IDS_SETTINGS_COMMENTARY, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS_COMMENTARY, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_COMMENTARY, szCaption);
     LoadStringW(hInst, IDS_CARDBACK, szCaption, MAX_LOADSTRING);

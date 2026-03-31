@@ -42,6 +42,8 @@ void ResetDirty(HWND hWnd);
 bool PromptToSaveChanges(HWND hWnd);
 void InitNewDagobert();
 bool HitTest(POINT *p, CardsBeingHit* cards);
+bool CanDropHere(int* di, int* ti);
+bool IsInSnapDistance(POINT p1, POINT p2);
 void ClickedOnCard(HWND hWnd);
 bool UncoverStockpile(HWND hWnd);
 bool CycleStockpile(HWND hWnd);

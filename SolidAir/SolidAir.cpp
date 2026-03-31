@@ -461,8 +461,89 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (hasCapturedTheMouseToDragCards)
             {
                 ReleaseCapture();
+
+                // can we drop here?
+                int di, ti;
+                bool hasDropped = false;
+
+                if (CanDropHere(&di, &ti))
+                {
+                    // now, can we really drop here? according to game rules?
+                    if (di != -1)
+                    {
+                        if (cardsBeingDragged.fromStockpile)
+                        {
+                            if (CanPlaceCardOnDagoPile(gameState.stockpile.pile[gameState.stockpile.uncovered], &gameState.dagoPiles[di]))
+                            {
+                                hasDropped = PlaceStockpileOnDago(hWnd, di);
+                            }
+                        }
+                        else
+                        {
+                            if (CanPlaceCardOnDagoPile(cardsBeingDragged.pile->pile[cardsBeingDragged.index], &gameState.dagoPiles[di]))
+                            {
+                                int si = -1;
+                                for (int i = 0; i < 7; ++i)
+                                {
+                                    // a shame that we don't remember the position where we dragged from
+                                    if (&gameState.dagoPiles[i] == cardsBeingDragged.pile)
+                                    {
+                                        si = i;
+                                        break;
+                                    }
+                                }
+
+                                if (si != -1)
+                                {
+                                    hasDropped = Move(hWnd, si, cardsBeingDragged.index, di);
+                                }
+                            }
+                        }
+                    }
+                    else if (ti != -1)
+                    {
+                        if (cardsBeingDragged.fromStockpile)
+                        {
+                            if (CanPlaceCardOnTargetPile(gameState.stockpile.pile[gameState.stockpile.uncovered], &gameState.targetPiles[ti]))
+                            {
+                                hasDropped = PlaceStockpileOnTarget(hWnd, ti);
+                            }
+                        }
+                        else
+                        {
+                            if (CanPlaceCardOnTargetPile(cardsBeingDragged.pile->pile[cardsBeingDragged.index], &gameState.targetPiles[ti]))
+                            {
+                                int si = -1;
+                                for (int i = 0; i < 7; ++i)
+                                {
+                                    // a shame that we don't remember the position where we dragged from
+                                    if (&gameState.dagoPiles[i] == cardsBeingDragged.pile)
+                                    {
+                                        si = i;
+                                        break;
+                                    }
+                                }
+
+                                if (si != -1)
+                                {
+                                    hasDropped = PlaceDagoOnTarget(hWnd, si, ti);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // anyway we stopped dragging now
                 hasCapturedTheMouseToDragCards = false;
+                cardsBeingDragged.fromStockpile = false;
+                cardsBeingDragged.pile = nullptr;
+                cardsBeingDragged.index = -1;
+                dragOffset.x = 0;
+                dragOffset.y = 0;
+                draggedFrom.x = 0;
+                draggedFrom.y = 0;
                 handled = true;
+                InvalidateRect(hWnd, NULL, false);
             }
             else
             {
@@ -713,6 +794,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         PushState(hWnd);
 
                         dP.uncoveredFrom = dP.numCardsOnPile - 1;
+                        SetDirty(hWnd);
                         mustRedraw = true;
                     }
 
@@ -2303,6 +2385,84 @@ bool HitTest(POINT *p, CardsBeingHit* cards)
     return false;
 }
 
+// identifies a position where potentially, a drop is possible
+// does not handle game rules (canplace... must still be called)
+bool CanDropHere(int* di, int* ti)
+{
+    *di = -1;
+    *ti = -1;
+
+    if (!hasCapturedTheMouseToDragCards)
+    {
+        return false;
+    }
+
+    if (cardsBeingDragged.fromStockpile == false && cardsBeingDragged.pile == nullptr)
+    {
+        return false;
+    }
+
+    POINT movingCard = POINT{};
+
+    if (cardsBeingDragged.fromStockpile)
+    {
+        const auto& stpos = gameState.stockpile.pos;
+
+        movingCard.x = stpos.left + dragOffset.x;
+        movingCard.y = stpos.top + dragOffset.y;
+    }
+    else
+    {
+        const auto& dpos = cardsBeingDragged.pile->pos;
+
+        movingCard.x = dpos.left + dragOffset.x;
+        movingCard.y = dpos.top + cardsBeingDragged.index * dist + dragOffset.y;
+    }
+
+    /* firstly, are we intersecting a potential drop spot on a dagopile, excluding the one we're dragging from */
+    for (int i = 0; i < 7; ++i)
+    {
+        const auto& dpile = gameState.dagoPiles[i];
+
+        if (!cardsBeingDragged.fromStockpile && cardsBeingDragged.pile == &dpile)
+        {
+            continue;
+        }
+
+        const auto& dpos = POINT{ dpile.pos.left, dpile.pos.top + dpile.numCardsOnPile * dist };
+
+        if (IsInSnapDistance(dpos, movingCard))
+        {
+            *di = i;
+
+            return true;
+        }
+    }
+
+    /* secondly, are we intersecting a potential drop spot on a targetpile */
+    for (int i = 0; i < 4; ++i)
+    {
+        const auto& tpos = gameState.targetPiles[i].pos;
+
+        if (IsInSnapDistance(POINT{ tpos.left, tpos.top }, movingCard))
+        {
+            *ti = i;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool IsInSnapDistance(POINT p1, POINT p2)
+{
+    long dx = p2.x - p1.x;
+    long dy = p2.y - p1.y;
+
+    return sqrt((double)(dx * dx + dy * dy)) < dist;
+}
+
 void ClickedOnCard(HWND hWnd)
 {
     if (cardLastClicked.fromStockpile && gameState.stockpile.numCardsOnPile != 0)
@@ -2315,12 +2475,39 @@ void ClickedOnCard(HWND hWnd)
             UncoverStockpile(hWnd);
         }
         else
-        { 
+        {
             // repeatedly clicking here cycles it
             CycleStockpile(hWnd);
         }
     }
+    else if (!cardLastClicked.fromStockpile)
+    {
+        int si = -1;
+        for (int i = 0; i < 7; ++i)
+        {
+            if (&gameState.dagoPiles[i] == cardLastClicked.pile)
+            {
+                si = i;
+                break;
+            }
+        }
 
+        if (si != -1)
+        {
+            const auto& dP = gameState.dagoPiles[si];
+
+            if (dP.uncoveredFrom >= dP.numCardsOnPile && dP.numCardsOnPile > 0)
+            {
+                // the act of uncovering something is a move on its own
+                PushState(hWnd);
+
+                gameState.dagoPiles[si].uncoveredFrom = dP.numCardsOnPile - 1;
+
+                SetDirty(hWnd);
+                RedrawDagopile(hWnd, si, 0);
+            }
+        }
+    }
 }
 
 bool UncoverStockpile(HWND hWnd)

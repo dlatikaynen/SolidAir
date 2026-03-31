@@ -56,7 +56,8 @@ bool soundFxOn = false;
 bool musicOn = false;
 bool commentaryOn = false;
 GameState gameState = {};
-bool winningAnimationStage = 0;
+bool inDance = false;
+int winningAnimationStage = 0;
 long winningAnimationTicks = 0;
 
 // commentary
@@ -261,17 +262,21 @@ int APIENTRY wWinMain(
 
     NewGame(hWnd);
 
+    const auto& hMenu = GetMenu(hWnd);
+
     if (isAudioAvailable)
     {
         MIX_SetTrackGain(track1, musicOn ? 0.8 : 0);
     }
     else
     {
-        const auto& hMenu = GetMenu(hWnd);
 
         EnableMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, MF_DISABLED);
         EnableMenuItem(hMenu, ID_SETTINGS_SOUNDFX, MF_DISABLED);
     }
+
+    // TODO: feature not yet available
+    EnableMenuItem(hMenu, ID_SETTINGS_SOUNDFX, MF_DISABLED);
 
     // ancient main message loop
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SOLIDAIR));
@@ -437,9 +442,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_LBUTTONDOWN:
         {
+            if (inDance)
+            {
+                EndDance(hWnd);
+                break;
+            }
+
             const auto& pos = MAKEPOINTS(lParam);
             POINT pixelPos = { pos.x, pos.y };
-            
+
             // remember for drag initiating detection
             // [dlatikay 20260315] do not listen to non-clientarea clicks (menu)
             if (pixelPos.x >= 0 && pixelPos.y >= 0)
@@ -456,6 +467,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONUP:
         {
+            if (inDance)
+            {
+                EndDance(hWnd);
+                break;
+            }
+
             bool handled = false;
 
             if (hasCapturedTheMouseToDragCards)
@@ -580,6 +597,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOUSEMOVE:
         {
+            if (inDance)
+            {
+                break;
+            }
+        
             bool handled = false;
 
             if (wParam & MK_LBUTTON)
@@ -656,6 +678,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_KEYDOWN:
+        if (inDance)
+        {
+            EndDance(hWnd);
+            break;
+        }
+
         // keyboard operation:
         // 1..7           uncover the dagopile if covered
         // 1..7           select the dagopile as the drag source if already uncovered and not empty
@@ -842,6 +870,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_KEYUP:
+        if (inDance)
+        {
+            break;
+        }
+
         // <Strg> alone uncovers a covered stockpile, and keyupped without n cycles the stockpile
         if (wParam == VK_CONTROL)
         {
@@ -924,13 +957,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             FillRect(hdc, &ps.rcPaint, shrubbery);
             DeleteObject(shrubbery);
 
-            if (winningAnimationStage == 0)
+            // is there a text on the table?
+            if (commentaryOn && isTalking)
             {
-                PaintGame(hdc, &ps);
+                HFONT nameFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+                HFONT prevFont1 = (HFONT)SelectObject(hdc, nameFont);
+
+                auto nameRect = RECT{
+                    gameState.stockpile.pos.right + dist + 2,
+                    gameState.stockpile.pos.top,
+                    gameState.targetPiles[0].pos.left - dist - 2,
+                    gameState.stockpile.pos.bottom - dist / 2 - 1
+                };
+
+                auto textRect = RECT{
+                    gameState.stockpile.pos.right + dist + 2,
+                    gameState.stockpile.pos.top + dist / 2 + 1,
+                    gameState.targetPiles[0].pos.left - dist - 2,
+                    gameState.stockpile.pos.bottom - dist / 2 - 1
+                };
+
+                SetTextColor(hdc, RGB(0xfe, 0, 0));
+                DrawText(hdc, name, -1, &nameRect, DT_CENTER);
+                HFONT textFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+                SelectObject(hdc, textFont);
+                SetTextColor(hdc, gameState.backgroundColor == BackgroundColors::Black ? RGB(0xec, 0xec, 0xec) : RGB(3, 3, 3));
+                DrawText(hdc, quip, -1, &textRect, DT_CENTER);
+
+                SelectObject(hdc, prevFont1);
+            }
+
+            if (inDance)
+            {
+                if (winningAnimationStage <= 4)
+                {
+                    ++winningAnimationTicks;
+                }
+
+                PaintDance(hWnd, hdc, &ps);
             }
             else
             {
-                PaintDance(hdc, &ps);
+                PaintGame(hdc, &ps);
             }
 
             BitBlt(rawDc, 0, 0, width, height, hdc, 0, 0, SRCCOPY);
@@ -939,12 +1007,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
 
+        if (inDance)
+        {
+            Sleep(12);
+            InvalidateRect(hWnd, nullptr, false);
+        }
+
         return true;
     
     case WM_COMMAND:
-        {
+        {        
             int wmId = LOWORD(wParam);
             const auto& hMenu = GetMenu(hWnd);
+
+            if (inDance && wmId != ID_GAME_NEW)
+            {
+                EndDance(hWnd);
+            }
 
             switch (wmId)
             {
@@ -954,7 +1033,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     return true;
                 }
 
-                NewGame(hWnd);
+                if (inDance)
+                {
+                    EndDance(hWnd);
+                }
+                else
+                {
+                    NewGame(hWnd);
+                }
 
                 return true;
 
@@ -1218,6 +1304,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 break;
 
+            case ID_HELP_QUICKREFERENCE:
+                ShellExecuteA(0, "open", quickReferenceUrl, NULL, NULL, SW_SHOWDEFAULT);
+                return true;
+
+            case ID_HELP_ONLINEDOCS:
+                ShellExecuteA(0, "open", onlineDocsUrl, NULL, NULL, SW_SHOWDEFAULT);
+                return true;
+
             case ID_HELP_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 
@@ -1258,7 +1352,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 void Quip(HWND hWnd, Cards speaker, UINT resId, bool invalidateSeparately)
 {
-    cdtName(nullptr, (int)speaker, 0, (LPWCH)&name);
+    cdtName(nullptr, (int)speaker, (int)language, (LPWCH)&name);
     LoadString(hInst, resId, (LPWCH)&quip, MAX_LOADSTRING);
     isTalking = true;
 
@@ -1297,36 +1391,6 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
         1,
         gameState.backgroundColor == BackgroundColors::Black ? RGB(0x6f, 0x6f, 0x6f) : RGB(0, 0, 0)
     );
-
-    // is there a text on the table?
-    if (commentaryOn && isTalking)
-    {
-        HFONT nameFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
-        HFONT prevFont1 = (HFONT)SelectObject(hdc, nameFont);
-
-        auto nameRect = RECT{
-            gameState.stockpile.pos.right + dist + 2,
-            gameState.stockpile.pos.top,
-            gameState.targetPiles[0].pos.left - dist - 2,
-            gameState.stockpile.pos.bottom - dist / 2 - 1
-        };
-
-        auto textRect = RECT{
-            gameState.stockpile.pos.right + dist + 2,
-            gameState.stockpile.pos.top + dist / 2 + 1,
-            gameState.targetPiles[0].pos.left - dist - 2,
-            gameState.stockpile.pos.bottom - dist / 2 - 1
-        };
-
-        SetTextColor(hdc, RGB(0xfe, 0, 0));
-        DrawText(hdc, name, -1, &nameRect, DT_CENTER);
-        HFONT textFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
-        SelectObject(hdc, textFont);
-        SetTextColor(hdc, gameState.backgroundColor == BackgroundColors::Black ? RGB(0xec, 0xec, 0xec) : RGB(3, 3, 3));
-        DrawText(hdc, quip, -1, &textRect, DT_CENTER);
-
-        SelectObject(hdc, prevFont1);
-    }
 
     // draw selection indicator
     if (currentDagopi != -1)
@@ -1466,8 +1530,9 @@ void PaintGame(HDC hdc, PAINTSTRUCT* ps)
                 const auto& nextStockpileCard = gameState.stockpile.pile[nextStockpileIndex];
 
                 cdtDraw(hdc, gameState.stockpile.pos.left, gameState.stockpile.pos.top, nextStockpileCard, 1, 0);
-                cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
             }
+
+            cdtDraw(hdc, gameState.stockpile.pos.left + dragOffset.x, gameState.stockpile.pos.top + dragOffset.y, uncoveredCard, 1, 0);
         }
         else
         {
@@ -1702,7 +1767,10 @@ void NewGame(HWND hWnd)
     gameState.backgroundColor = backgroundColor;
     gameState.stockpile.numCardsOnPile = 0;
     gameState.stockpile.uncovered = -1;
-
+    cardLastClicked.fromStockpile = false;
+    cardLastClicked.index = -1;
+    cardLastClicked.pile = nullptr;
+    
     for (int i = 0; i < 7; ++i)
     {
         if (i < 4)
@@ -2628,6 +2696,7 @@ bool PlaceStockpileOnTarget(HWND hWnd, int pi)
         if (Won(hWnd))
         {
             // HOORAY
+            return true;
         }
         else
         {
@@ -2752,6 +2821,7 @@ bool PlaceDagoOnTarget(HWND hWnd, int di, int ti)
     if (Won(hWnd))
     {
         // HOORAY
+        return true;
     }
     else 
     {
@@ -3000,89 +3070,97 @@ int GetRank(Cards card)
 
 void Dance(HWND hWnd)
 {
-    MSG msg;
     winningAnimationStage = 1;
+    winningAnimationTicks = 0;
+    inDance = true;
+    Quip(hWnd, Cards::Joker, IDS_QUOTH_HOORAY, false);
+}
 
-    while (true)
+void EndDance(HWND hWnd)
+{
+    inDance = false;
+    NewGame(hWnd);
+}
+
+void PaintDance(HWND hWnd, HDC hdc, PAINTSTRUCT* ps)
+{
+    const int& lastStage = winningAnimationStage == 5 ? 4 : winningAnimationStage;
+    const auto& height = ps->rcPaint.bottom;
+
+    cdtDraw(hdc, dist, dist, Cards::Joker, 1, 0);
+
+    if (winningAnimationStage < 5)
     {
-        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+        for (int i = (lastStage - 1); i < 4; ++i)
         {
-            if (msg.message == WM_QUIT)
+            if (lastStage != (i + 1))
+            {
+                const auto& tp = gameState.targetPiles[i];
+                cdtDraw(
+                    hdc,
+                    tp.pos.left,
+                    tp.pos.top,
+                    tp.pile[tp.numCardsOnPile - 1],
+                    0,
+                    0
+                );
+            }
+        }
+    }
+
+    for (int pi = 0; pi < lastStage; ++pi)
+    {
+        const auto& curp = gameState.targetPiles[pi];
+        const auto& topCard = curp.pile[curp.numCardsOnPile - 1];
+
+        for (int i = 0;; ++i)
+        {
+            auto left = curp.pos.left - i * (pi == 3 ? 1 : pi);
+            auto top = curp.pos.top + pow(i, 1.3);
+
+            if (pi == 2)
+            {
+                left -= 2 * i;
+            }
+
+            if (pi == 1)
+            {
+                left -= 48 * tan(i / 33.0);
+            }
+
+            cdtDraw(
+                hdc,
+                left,
+                top,
+                pi == (lastStage - 1) && i == winningAnimationTicks ? topCard : gameState.backside,
+                1,
+                0
+            );
+
+            if (pi == (winningAnimationStage - 1))
+            {
+                if (i == winningAnimationTicks)
+                {
+                    break;
+                }
+                else if (winningAnimationTicks == 25 && pi == 1)
+                {
+                    Quip(hWnd, topCard, IDS_QUOTE_WHEE, false);
+                }
+
+                if (winningAnimationTicks > 2000 || top > height)
+                {
+                    winningAnimationTicks = 1;
+                    ++winningAnimationStage;
+                    Silentium(hWnd, false);
+
+                    return;
+                }
+            }
+            else if (top > height)
             {
                 break;
             }
-
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
         }
-
-        if (msg.message == WM_QUIT)
-        {
-            PostMessage(hWnd, WM_QUIT, 0, 0);
-
-            break;
-        }
-
-        // animate continuously in 30 fps
-        InvalidateRect(hWnd, NULL, false);
-        ++winningAnimationTicks;
-    }
-}
-
-void PaintDance(HDC hdc, PAINTSTRUCT* ps)
-{
-    switch (winningAnimationStage)
-    {
-        case 1:
-        {
-            // 1. cards leave the building face down
-            auto& pos = gameState.targetPiles[0].pos;
-
-            for (int i = 1; i < 10000; ++i)
-            {
-                if (i > winningAnimationTicks)
-                {
-                    cdtDraw(
-                        hdc,
-                        pos.left - 10 * sqrt(i * 12 + 10),
-                        pos.top + i * 12,
-                        Cards::Joker,
-                        0,
-                        0
-                    );
-
-                    break;
-                }
-                else
-                {
-                    cdtDraw(
-                        hdc,
-                        pos.left - 10 * sqrt(i * 12 + 10),
-                        pos.top + i * 12,
-                        gameState.backside,
-                        0,
-                        0
-                    );
-                }
-            }
-        }
-     
-        break;
-
-    case 2:
-        // 2. cards parade face up
-        break;
-
-        // 3. cards dance
-    case 3:
-        break;
-
-        // 4. cards are shredded
-    case 4:
-        break;
-
-        // 5. card shreds play game of life until the board is empty or a still life ensues
-    case 5:
-        break;
     }
 }

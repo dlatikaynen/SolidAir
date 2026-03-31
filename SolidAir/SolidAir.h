@@ -6,6 +6,8 @@
 
 constexpr const char* musicUrl = "https://freesound.org/s/560446";
 constexpr const char* githubUrl = "https://github.com/dlatikaynen/SolidAir/issues/new";
+constexpr const char* quickReferenceUrl = "https://www.en-software.com/solidair/quickreference";
+constexpr const char* onlineDocsUrl = "https://www.en-software.com/solidair/docs";
 constexpr auto MAX_LOADSTRING = 300;
 
 extern HINSTANCE hInst;
@@ -17,7 +19,7 @@ void Quip(HWND hWnd, Cards speaker, UINT resId, bool invalidateSeparately);
 void Silentium(HWND hWnd, bool invalidateSeparately);
 void RedrawConversation(HWND hWnd);
 void PaintGame(HDC hdc, PAINTSTRUCT* ps);
-void PaintDance(HDC hdc, PAINTSTRUCT* ps);
+void PaintDance(HWND hWnd, HDC hdc, PAINTSTRUCT* ps);
 bool Won(HWND hWnd);
 void UncheckAllBackgroundMenuItems(HMENU hMenu, int check);
 void UncheckAllBkgColorMenuItems(HMENU hMenu, int check);
@@ -64,6 +66,7 @@ bool GetColor(Cards card);
 Suite GetSuite(Cards card);
 int GetRank(Cards card);
 void Dance(HWND hWnd);
+void EndDance(HWND hWnd);
 
 typedef BOOL(WINAPI* pfcdtInit)(int*, int*);
 typedef BOOL(WINAPI* pfcdtDraw)(HDC, int x, int y, int card, int type, DWORD color);

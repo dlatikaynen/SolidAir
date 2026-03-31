@@ -156,6 +156,7 @@
 #define IDS_QUOTH_LAYMAN                32918
 #define IDS_QUOTH_HAMSTER               32919
 #define IDS_QUOTH_FACEDOWN              32920
+#define IDS_QUOTH_HOORAY                32921
 #define IDC_STATIC                      -1
 #define IDC_ABOUT_LABEL_ADDITIONAL_ARTWORK -1
 

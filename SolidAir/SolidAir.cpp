@@ -2296,18 +2296,24 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     ModifyMenu(hMenu, ID_PLAY, MF_BYCOMMAND | MF_STRING, ID_PLAY, szCaption);
     LoadStringW(hInst, IDS_PLAY_UNDO, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_PLAY_UNDO, MF_BYCOMMAND | MF_STRING, ID_PLAY_UNDO, szCaption);
+    EnableMenuItem(hMenu, ID_PLAY_UNDO, undoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
     LoadStringW(hInst, IDS_PLAY_REDO, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_PLAY_REDO, MF_BYCOMMAND | MF_STRING, ID_PLAY_REDO, szCaption);
+    EnableMenuItem(hMenu, ID_PLAY_REDO, redoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
 
     LoadStringW(hInst, IDS_SETTINGS, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS, MF_BYCOMMAND | MF_STRING, ID_SETTINGS, szCaption);
     LoadStringW(hInst, IDS_SETTINGS_BACKGROUNDMUSIC, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_BACKGROUNDMUSIC, szCaption);
+    CheckMenuItem(hMenu, ID_SETTINGS_BACKGROUNDMUSIC, musicOn ? MF_CHECKED : MF_UNCHECKED);
     LoadStringW(hInst, IDS_SETTINGS_SOUNDFX, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS_SOUNDFX, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_SOUNDFX, szCaption);
     EnableMenuItem(hMenu, ID_SETTINGS_SOUNDFX, MF_DISABLED); // TODO: not yet supported
+    CheckMenuItem(hMenu, ID_SETTINGS_SOUNDFX, soundFxOn ? MF_CHECKED : MF_UNCHECKED);
     LoadStringW(hInst, IDS_SETTINGS_COMMENTARY, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_SETTINGS_COMMENTARY, MF_BYCOMMAND | MF_STRING, ID_SETTINGS_COMMENTARY, szCaption);
+    CheckMenuItem(hMenu, ID_SETTINGS_COMMENTARY, commentaryOn ? MF_CHECKED : MF_UNCHECKED);
+
     LoadStringW(hInst, IDS_CARDBACK, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_CARDBACK, MF_BYCOMMAND | MF_STRING, ID_CARDBACK, szCaption);
     LoadStringW(hInst, IDS_CARDBACK_BLOODOT, szCaption, MAX_LOADSTRING);
@@ -2340,6 +2346,8 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     ModifyMenu(hMenu, ID_CARDBACK_SKY, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_SKY, szCaption);
     LoadStringW(hInst, IDS_CARDBACK_SPACE, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_CARDBACK_SPACE, MF_BYCOMMAND | MF_STRING, ID_CARDBACK_SPACE, szCaption);
+    UncheckAllBackgroundMenuItems(hMenu, MenuItemFromCardBackside(cardBackside));
+
     LoadStringW(hInst, IDS_BACKGROUNDCOLOR, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_BACKGROUNDCOLOR, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR, szCaption);
     LoadStringW(hInst, IDS_BACKGROUNDCOLOR_GREEN, szCaption, MAX_LOADSTRING);
@@ -2352,6 +2360,7 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_DARKGRAY, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_DARKGRAY, szCaption);
     LoadStringW(hInst, IDS_BACKGROUNDCOLOR_PINK, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_BACKGROUNDCOLOR_PINK, MF_BYCOMMAND | MF_STRING, ID_BACKGROUNDCOLOR_PINK, szCaption);
+    UncheckAllBkgColorMenuItems(hMenu, MenuItemFromBackgroundColor(backgroundColor));
 
     LoadStringW(hInst, IDS_HELP, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_HELP, MF_BYCOMMAND | MF_STRING, ID_HELP, szCaption);
@@ -2362,8 +2371,6 @@ void SetLanguage(HWND hWnd, FrontendLanguage lang)
     LoadStringW(hInst, IDS_HELP_ABOUT, szCaption, MAX_LOADSTRING);
     ModifyMenu(hMenu, ID_HELP_ABOUT, MF_BYCOMMAND | MF_STRING, ID_HELP_ABOUT, szCaption);
 
-    EnableMenuItem(hMenu, ID_PLAY_UNDO, undoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
-    EnableMenuItem(hMenu, ID_PLAY_REDO, redoBuffer.empty() ? MF_DISABLED : MF_ENABLED);
     DrawMenuBar(hWnd);
 }
 

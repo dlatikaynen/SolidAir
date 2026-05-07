@@ -714,7 +714,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             // keep track of the other two modifier keys
-            if ((wParam == VK_SHIFT || wParam == VK_RSHIFT) && isShiftPressed == false)
+            if ((wParam == VK_SHIFT || wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed == false)
             {
                 isShiftPressed = true;
             }
@@ -869,6 +869,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_KEYUP:
+        if ((wParam == VK_SHIFT || wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed)
+        {
+            isShiftPressed = false;
+        }
+        else if ((wParam == VK_LMENU || wParam == VK_RMENU) && isAltPressed)
+        {
+            isAltPressed = false;
+        }
+
         if (inDance)
         {
             break;
@@ -886,16 +895,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     return 0;
                 }
             }
-        }
-
-        if ((wParam == VK_SHIFT || wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed)
-        {
-            isShiftPressed = false;
-        }
-
-        else if ((wParam == VK_LMENU || wParam == VK_RMENU) && isAltPressed)
-        {
-            isAltPressed = false;
         }
 
         break;

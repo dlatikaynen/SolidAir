@@ -466,6 +466,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONUP:
         {
+            // safe to call even if we don't hold capture
+            ReleaseCapture();
+
             if (inDance)
             {
                 EndDance(hWnd);
@@ -476,7 +479,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (hasCapturedTheMouseToDragCards)
             {
-                ReleaseCapture();
+                //ReleaseCapture();
 
                 // can we drop here?
                 int di, ti;
@@ -590,6 +593,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 return 0;
             }
+        }
+
+        break;
+
+    case WM_SYSKEYDOWN:
+        if (wParam == VK_LMENU || wParam == VK_RMENU)
+        {
+            // let DefWindowProc do normal Alt-activates-menu
+            isAltPressed = true;
+            break;  
+        }
+
+        // F10, Alt+F4, etc. → DefWindowProc
+        break;  
+
+    case WM_SYSKEYUP:
+        if (wParam == VK_LMENU || wParam == VK_RMENU)
+        {
+            isAltPressed = false;
         }
 
         break;
@@ -717,10 +739,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if ((wParam == VK_SHIFT || wParam == VK_LSHIFT || wParam == VK_RSHIFT) && isShiftPressed == false)
             {
                 isShiftPressed = true;
-            }
-            else if ((wParam == VK_LMENU || wParam == VK_RMENU) && isAltPressed == false)
-            {
-                isAltPressed = true;
             }
 
             int newPi = -1;
@@ -873,10 +891,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             isShiftPressed = false;
         }
-        else if ((wParam == VK_LMENU || wParam == VK_RMENU) && isAltPressed)
-        {
-            isAltPressed = false;
-        }
 
         if (inDance)
         {
@@ -1021,6 +1035,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (inDance && wmId != ID_GAME_NEW)
             {
                 EndDance(hWnd);
+            }
+
+            switch (wmId)
+            {
+            case ID_GAME_NEW:
+            case ID_GAME_SAVE:
+            case ID_PLAY_UNDO:
+            case ID_PLAY_REDO:
+                // accelerator consumed the ctrl-modified keystroke
+                isCtrlPressed = false;
+                isAltPressed = false;
+                break;
             }
 
             switch (wmId)

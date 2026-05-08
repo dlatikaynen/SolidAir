@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cards", "cards\cards.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SolidAir", "SolidAir\SolidAir.vcxproj", "{77CFAACA-2C64-401D-BDB7-9A535F8D88ED}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "SolidAirSetup", "SolidAirSetup\SolidAirSetup.vdproj", "{F77EEA0D-0C43-C59B-0132-B747F7587CB6}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,10 +31,6 @@ Global
 		{77CFAACA-2C64-401D-BDB7-9A535F8D88ED}.Release|x64.Build.0 = Release|x64
 		{77CFAACA-2C64-401D-BDB7-9A535F8D88ED}.Release|x86.ActiveCfg = Release|Win32
 		{77CFAACA-2C64-401D-BDB7-9A535F8D88ED}.Release|x86.Build.0 = Release|Win32
-		{F77EEA0D-0C43-C59B-0132-B747F7587CB6}.Debug|x64.ActiveCfg = Debug
-		{F77EEA0D-0C43-C59B-0132-B747F7587CB6}.Debug|x86.ActiveCfg = Debug
-		{F77EEA0D-0C43-C59B-0132-B747F7587CB6}.Release|x64.ActiveCfg = Release
-		{F77EEA0D-0C43-C59B-0132-B747F7587CB6}.Release|x86.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
